@@ -1,0 +1,25 @@
+FROM node:24.2.0-bookworm-slim
+
+# Copy source
+RUN mkdir $HOME/scripts
+COPY ./scripts $HOME/scripts
+WORKDIR $HOME
+# Change ownership of all files
+USER 0
+RUN chown -R 1001 $HOME
+RUN chmod -R 777 $HOME
+
+# Config NPM
+ENV CDXGEN_DEBUG_MODE=info
+# Install cdxgen
+RUN npm install -g @cyclonedx/cdxgen
+# Install git
+RUN dnf install git -y
+
+# Don't run as root
+USER 1001
+
+EXPOSE 9090
+
+# Start the app
+CMD cdxgen --server --server-host 0.0.0.0 --server-port 9090
