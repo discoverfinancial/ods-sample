@@ -1,0 +1,1 @@
+Temp dir for processing assets (.ear, .war, .jar)
