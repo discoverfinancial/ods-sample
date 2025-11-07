@@ -1,0 +1,11 @@
+.jsonChildStyle {
+    margin: 0 40px !important;
+}
+
+.jsonContainerStyle {
+    margin: 0 !important;
+}
+
+.jsonStringStyle {
+    color: darkgreen;
+}
