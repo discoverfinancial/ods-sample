@@ -1,0 +1,68 @@
+#!/bin/bash
+
+# Optional script that can be used to set up the local development environment
+# Rename this file to "run" and add tokens and secrets as appropriate
+
+function usage {
+   if [ $# -ne 0 ]; then
+      echo "ERROR: $*"
+   fi
+   echo "Usage: run port { basic | oauth } { patent-local | patent } { risk } { production }"
+   echo "       where port = the port number (3000, 3010, 3020)"
+   echo "             Authentication (default is none):"
+   echo "                 basic = basic auth"
+   echo "                 oauth = OAuth authentication"
+   echo "             production = run in production mode (default is development)"
+   exit 1
+}
+
+function err {
+   echo "ERROR: $*"
+   exit 1
+}
+
+if [ $# -lt 1 ]; then
+   usage
+fi
+
+# The port that the application will run on.  Port 3000 by default.
+PORT=$1
+AUTH=noauth
+NODEENV=development
+
+NAME=...update
+# Secret upon which session data is stored, used for JSON Web Token
+SESSION_SECRET=...update
+
+BASIC_AUTH_ENABLED=false
+
+# Make sure to add any defined values to the list of environment variables in CMD below
+
+# The address of the running ODS Server through which this application will manage SBOMs.
+#  Default is http://localhost:3000
+ODS_SERVER=...update
+# The userid of a user that has access to the ODS_SERVER.
+ODS_SERVER_USER=...update
+# The password of a user that has access to the ODS_SERVER.  The ODS_SERVER_PASS
+#  value could also be a user token created in the ODS_SERVER_USER account on the
+#  ODS server.
+ODS_SERVER_PASS=...update
+
+# Optional, indicates whether logging of http response body is desired.
+#  Default is false.
+#LOG_HTTP_RESPONSE_BODY=false
+
+for arg in "$@"
+do
+    if [ "$arg" = "basic" ]; then
+       BASIC_AUTH_ENABLED=true
+    elif [ "$arg" = "production" ]; then
+        NODEENV=production
+    fi    
+done
+
+CMD="ODS_SERVER=${ODS_SERVER} ODS_SERVER_USER=${ODS_SERVER_USER} ODS_SERVER_PASS=${ODS_SERVER_PASS} NAME=${NAME} PORT=${PORT} BASE_URL=http://localhost:${PORT} BASIC_AUTH_ENABLED=${BASIC_AUTH_ENABLED} SESSION_SECRET=${SESSION_SECRET} NODE_ENV=${NODEENV} npm run debug"
+echo $CMD
+
+eval "${CMD}"
+
