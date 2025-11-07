@@ -1,0 +1,29 @@
+{
+    "gitHubSBOMSources": [
+        {
+            "url": "https://github.com/finos/a11y-theme-builder",
+            "type": "js",
+            "multiProject": true
+        },
+        {
+            "url": "https://github.com/finos/fin-ocr-rest",
+            "type": "js",
+            "multiProject": false
+        },
+        {
+            "url": "https://github.com/finos/fin-ocr-browser",
+            "type": "js",
+            "multiProject": false
+        },
+        {
+            "url": "https://github.com/finos/fin-ocr-sdk",
+            "type": "js",
+            "multiProject": false
+        },
+        {
+            "url": "https://github.com/finos/fin-ocr-cli",
+            "type": "js",
+            "multiProject": false
+        }
+    ]
+}
