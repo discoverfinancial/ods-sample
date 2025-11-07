@@ -1,0 +1,15 @@
+/**
+ * Copyright (c) 2025 Capital One
+*/
+
+.jsonChildStyle {
+    margin: 0 40px !important;
+}
+
+.jsonContainerStyle {
+    margin: 0 !important;
+}
+
+.jsonStringStyle {
+    color: darkgreen;
+}
