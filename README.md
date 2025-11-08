@@ -21,7 +21,7 @@ We encourage designers, developers, technical writers and testers to read about 
 
 ## Learn more, give feedback
 
-We are happy to listen to ideas, to learn where we can improve and would love to help you become involved in our project.  If you would like to help us to refine ODS Surveyor's template or client applications by reporting issues or suggesting enhancements, please begin the dialog by capturing your thoughts and observations in a [GitHub Issue](/issues).  Please use the `ods-app` or `ods-client` label to signify whether the issue is related to the template application(ods-app) or the client application(ods-client).
+We are happy to listen to ideas, to learn where we can improve and would love to help you become involved in our project.  If you would like to help us to refine ODS Surveyor's template or client applications by reporting issues or suggesting enhancements, please begin the dialog by capturing your thoughts and observations in a [GitHub issue](https://github.com/discoverfinancial/ods-sample/issues).  Please use the `ods-app` or `ods-client` label to signify whether the issue is related to the template application(ods-app) or the client application(ods-client).
 
 If you would like to discuss our ambitions and vision, or to learn more about ODS family, please [reach out to us through Slack](https://dfslabs.slack.com).
 

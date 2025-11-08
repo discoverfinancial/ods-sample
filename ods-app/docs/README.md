@@ -8,7 +8,7 @@ The framework defines an architecture that utilizes data clients to extract data
 
 The architecture for the ODS Framework is show below.
 
-![](./guides/_images/ods-framework-architecture.png)
+![](./_images/ods-framework-architecture.png)
 
 The **ODS Framework** consists of an **ETL Server** (Extract-Transform-Load) that periodically retrieves data from the **Data Source Clients** and updates the ODS **Data Model**.  The data comes from various systems of record in the enterprise such as a Configuration Management Database (CMDB), Software Composition Analysis (SCA), etc.  
 
