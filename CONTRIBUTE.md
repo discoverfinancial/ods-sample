@@ -6,17 +6,17 @@ This document provides guidance for how YOU can collaborate with our project com
 # ODS Contribution and Governance Policies
 
 This document describes the contribution process and governance policies of the ODS project. The project draws influence from, but is not driven by, the [Linux
-Foundation Antitrust Policy](https://www.linuxfoundation.org/antitrust-policy/), and the FINOS [IP Policy](https://community.finos.org/assets/files/IP-Policy-9b1cd5f6c1d682e073c3c15224fc6d86.pdf), [Code of Conduct](https://community.finos.org/docs/governance/code-of-conduct), [Collaborative Principles](https://community.finos.org/docs/governance/collaborative-principles/), and [Meeting Procedures](https://community.finos.org/docs/governance/meeting-procedures/).  Please contact a maintainer if you are unsure how to proceed on any topic.
+Foundation Antitrust Policy](https://www.linuxfoundation.org/antitrust-policy/), and the FINOS [IP Policy](https://community.finos.org/governance-docs/IP-policy.pdf), [Code of Conduct](https://community.finos.org/docs/governance/code-of-conduct), [Collaborative Principles](https://community.finos.org/docs/governance/collaborative-principles/), and [Meeting Procedures](https://community.finos.org/docs/governance/meeting-procedures/).  Please contact a maintainer if you are unsure how to proceed on any topic.
 
 ## Reporting Issues
 
 We welcome any feedback on the quality, stability or performance of ODS.  If you see incorrect behavior or would like to suggest ways to improve ODS, please use these guidelines to create an issue in GitHub.
-1. Please [check](https://github.com/discoverfinancial/ods-framework/issues) whether there is already an open issue related to your experience/feedback. If there is, join the discussion and contribute any observations or information that may not already be present in the issue.
+1. Please [check](https://github.com/discoverfinancial/ods-sample/issues) whether there is already an open issue related to your experience/feedback. If there is, join the discussion and contribute any observations or information that may not already be present in the issue.
 2. If there isn't already a relevant issue, create one using one of the provided templates.  Please provide the following information:
-    1. Add appropriate tag for project -> [`ods-framework`, `ods-surveyor`, `ods-sample`]
-        * ods-framework - Core ODS framework functionality
-        * ods-surveyor - Data surveyor tool for profiling and assessing data quality
-        * ods-sample - Sample applications demonstrating ODS functionality
+    1. Add appropriate tag for project -> [`ods-sample`, `ods-app`, `ods-client`]
+        * ods-sample - Core ODS Sample documentation
+        * ods-app - Sample applications demonstrating ODS functionality
+        * ods-client - Sample applications demonstrating ODS APIs
     3. Add appropriate tag for type of issue -> [`bug`, `enhancement`]
     4. (optional) Add tag for required specialties -> [`design thinking`, `project management`, `question`, `documentation`]
     5. Set `Projects` field to `ODS`
@@ -27,12 +27,11 @@ We welcome any feedback on the quality, stability or performance of ODS.  If you
     * Is this bug something you have run into?  Is it blocking you?  Would you appreciate it being looked into faster?
 4. If you would like to contribute designs, code, testing or resources toward resolving the issue, please note that in the issue.
 5. Respond to any questions or suggestions raised in the issue by other community members.
-6. We will triage all new issues at our next community meeting if you would like to offer more information as we prioritize your issue.  Click to see more [meeting
-   information](https://github.com/discoverfinancial/ods-framework/blob/main/CONTRIBUTE.md#meetings).
+6. We will triage all new issues at our next community meeting if you would like to offer more information as we prioritize your issue.  Click to see more [meeting information](https://github.com/discoverfinancial/ods-framework/CONTRIBUTE.md#meetings).
 
 ### Asking for features/enhancements
 
-Similar to reporting issues, a user wishing to create a feature request should first [check](https://github.com/discoverfinancial/ods-framework/issues) whether a similar request has already been made in the system.  Searching for features should include looking for issues with the `enhancement` label.  Additionally, searching on issues with the string `[EPIC]`in the title may prove useful.
+Similar to reporting issues, a user wishing to create a feature request should first [check](https://github.com/discoverfinancial/ods-sample/issues) whether a similar request has already been made in the system.  Searching for features should include looking for issues with the `enhancement` label.  Additionally, searching on issues with the string `[EPIC]`in the title may prove useful.
 
 If there isn't already a similar feature request, please create one using the appropriate `Feature Request Form` template.  After questions and suggestions from the community have been considered by the author and any resulting updates to the request have been made, we will triage the feature request.  If we determine the request to be sufficiently complex that we need to break work items into their own issues, the feature request will likely become an EPIC.  We will work with the author to ensure that no insights or information will be lost.
 
@@ -135,10 +134,10 @@ References:
 
 ## Testing
 Testing new releases and/or features is a great way to contribute to the community. If you find issues, please submit an [Issue/Feature
-Report](https://github.com/discoverfinancial/ods-framework/issues).
+Report](https://github.com/discoverfinancial/ods-sample/issues).
 
 ## Documentation
-[Learn](./DEV_GUIDE.md) how to develop, build, test, and contribute to the online docs.
+[Learn](./ods-app/docs/DEV_GUIDE.md) how to develop, build, test, and contribute to the online docs.
 
 ## Translations
 Our project aspires to be globally applicable but that requires internationalization support beyond the English language. We seek help in:

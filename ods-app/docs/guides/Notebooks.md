@@ -1,3 +1,5 @@
+# Notebooks Guide
+
 ODS App's Notebooks tool allows you to create server-side JavaScript notebooks. This allows you to build and document complex queries that run completely on the server, while presenting only the information you want in the browser.
 
 ODS App Notebooks are made up of cells. Currently there are 5 different types of cells supported, which you can change via the type dropdown. Those 5 types are JavaScript, Markdown, Search Software, React Code, and Input:
