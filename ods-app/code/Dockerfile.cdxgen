@@ -1,5 +1,8 @@
 FROM node:24.2.0-bookworm-slim
 
+ENV HOME=/app
+RUN mkdir -p ${HOME} && chown -R root:root ${HOME}
+
 # Copy source
 RUN mkdir $HOME/scripts
 COPY ./scripts $HOME/scripts
@@ -13,8 +16,6 @@ RUN chmod -R 777 $HOME
 ENV CDXGEN_DEBUG_MODE=info
 # Install cdxgen
 RUN npm install -g @cyclonedx/cdxgen
-# Install git
-RUN dnf install git -y
 
 # Don't run as root
 USER 1001

@@ -156,9 +156,9 @@ using:
 mkdir $HOME/tmp
 
 # build the container
-podman build -t testcdxserver:latest -f ./Dockerfile.cdxgen
+docker build -t testcdxserver:latest -f ./Dockerfile.cdxgen .
 
 # run the container
-podman run -d -v $HOME/tmp:/tmp -p 9090:9090 -v $(pwd):/app:rw --name test-cdxgen-container testcdxserver:latest
+docker run -d -v $HOME/tmp:/tmp -p 9090:9090 -v $(pwd):/app:rw --name test-cdxgen-container testcdxserver:latest
 ```
 
