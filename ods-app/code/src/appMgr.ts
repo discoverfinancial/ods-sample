@@ -220,7 +220,7 @@ export class AppMgr extends Ods {
                 { id: GROUP_TESTER, deletable: false },
             ],
             adminRole: GROUP_ADMIN,
-            roles: [],
+            roles: [Role.Administrator, Role.Editor, Role.Employee],
             userProfileService: userProfileService,
             sandboxFunctions: path.join(__dirname, "adminSandboxFunctions.js"),
             etlConfig: {
@@ -413,6 +413,9 @@ export class AppMgr extends Ods {
             //console.log(e);
             console.log("Warning: Could not create database indexes")
         }
+
+        // Get Api keys from database and set env var API_KEYS
+        await this.updateApikeyEnv();
 
         log.debug("AppMgr onInit() finished");
     }
