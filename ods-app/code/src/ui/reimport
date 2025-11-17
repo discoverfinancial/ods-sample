@@ -1,2 +1,2 @@
 npm uninstall dlms-base
-npm install ../../dlms-base-2.0.0.tgz
+npm install ../../dlms-base-2.0.1.tgz

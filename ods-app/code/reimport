@@ -3,10 +3,10 @@
 npm uninstall dlms-server dlms-base
 
 # Install new dlms modules
-cp ../../../discoverfinancial/dlms-server/base/dlms-base-2.0.0.tgz .
-cp ../../../discoverfinancial/dlms-server/server/dlms-server-2.0.0.tgz .
-npm install dlms-base-2.0.0.tgz
-npm install dlms-server-2.0.0.tgz
+cp ../../../dlms-server/base/dlms-base-2.0.1.tgz .
+cp ../../../dlms-server/server/dlms-server-2.0.1.tgz .
+npm install dlms-base-2.0.1.tgz
+npm install dlms-server-2.0.1.tgz
 
 # Update dlms in ui
 cd src/ui
