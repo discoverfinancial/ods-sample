@@ -124,6 +124,7 @@
     "webpack": "^5.69.1"
   },
   "devDependencies": {
+    "eslint-config-react-app": "^7.0.1",
     "react-scripts": "^5.0.1",
     "webpack": "^5.83.1"
   }
