@@ -3,7 +3,7 @@
 */
 
 import { Logger, UserContext } from "dlms-server";
-import { Ods, ETL, stopExecution } from "ods-framework";
+import { Ods, ETL } from "ods-framework";
 import axios from "axios";
 import { SbomClient } from "../bom";
 import { STATUS } from "ods-framework";
@@ -744,7 +744,6 @@ export class CdxgenClient implements CacheUpdateDataClient {
 
         // See if SBOM already exists for this cache item
         let _sbom = await this.sbomClient.getSbomForCdxgenId(ctx, item.id);
-        await stopExecution("Cdxgen 1");
 
         // generate sbom from GitHub repo using Cdxgen
         const sbomUrl = `${cdxgenUrl}/sbom?url=${cdxgenItem.url}&multiProject=${cdxgenItem.multiProject}&type=${cdxgenItem.type}`;
@@ -760,7 +759,6 @@ export class CdxgenClient implements CacheUpdateDataClient {
             url: cdxgenItem.url,
             dateUpdated: cdxgenItem.dateUpdated
         }
-        await stopExecution("Cdxgen 2");
         if (!_sbom) {
             _sbom = await this.sbomClient.createSbom(ctx, sbom);
         } else {
@@ -768,7 +766,6 @@ export class CdxgenClient implements CacheUpdateDataClient {
             // NOTE: this will replace almost all of the previous SBOM data
             _sbom = await this.sbomClient.updateSbom(ctx, sbom, _sbom.id);
         }
-        await stopExecution("Cdxgen 3");
         if (_sbom && _sbom?.metadata?.component) {
             const sbomId = _sbom.id;
 
