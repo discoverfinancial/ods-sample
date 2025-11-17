@@ -29,7 +29,7 @@ export const users = [
     {
         id: 'editor',
         name: 'Editor',
-        roles: [Role.Employee],
+        roles: [Role.Employee, Role.Editor],
         department: 'Product Development',
         email: 'editor@test.com',
         title: 'Director',
@@ -91,7 +91,7 @@ export class MyUserProfileService implements EtlProfileService {
      */
     async verify(uid: string, pwd: string): Promise<UserContext> {
         console.log(`MyUserProfileService.verify: uid=${uid}`);
-        if (!passwords.hasOwnProperty(uid) && !(passwords[uid] == pwd)) {
+        if (!passwords.hasOwnProperty(uid) || !(passwords[uid] == pwd)) {
             throwErr(500, 'Authentication failed.');
         }
         return (await this.get(uid))[0];
