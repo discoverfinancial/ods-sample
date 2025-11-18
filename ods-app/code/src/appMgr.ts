@@ -2,7 +2,7 @@
  * Copyright (c) 2025 Capital One
 */
 
-import { Ods } from "ods-framework";
+import { apikeyType, Ods } from "ods-framework";
 import { 
     UserContext, 
     Logger, 
@@ -414,9 +414,15 @@ export class AppMgr extends Ods {
             console.log("Warning: Could not create database indexes")
         }
 
-        // Get Api keys from database and set env var API_KEYS
-        await this.updateApikeyEnv();
-
+        // Add an Api key
+        const r = await this.getDocs(this.getAdminContext(), apikeyType, {key: "abc"});
+        if (!r) {
+            await this.createDoc(this.getAdminContext(), apikeyType, {
+                key: "abc",
+                role: "Admin",
+                app: "Test"
+            });
+        }
         log.debug("AppMgr onInit() finished");
     }
 
