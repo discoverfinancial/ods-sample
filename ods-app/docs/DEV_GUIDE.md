@@ -154,11 +154,14 @@ using:
 ```
 # create tmp directory where git repos can be cloned temporarily
 mkdir $HOME/tmp
+cd $HOME/tmp
+git clone https://github.com/discoverfinancial/ods-sample.git
+cd ods-sample/ods-app/code
 
 # build the container
-podman build -t testcdxserver:latest -f ./Dockerfile.cdxgen
+docker build -t testcdxserver:latest -f ./Dockerfile.cdxgen .
 
 # run the container
-podman run -d -v $HOME/tmp:/tmp -p 9090:9090 -v $(pwd):/app:rw --name test-cdxgen-container testcdxserver:latest
+docker run -d -v $HOME/tmp:/tmp -p 9090:9090 -v $(pwd):/app:rw --name test-cdxgen-container testcdxserver:latest
 ```
 

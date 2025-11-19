@@ -14,7 +14,10 @@ ENV CDXGEN_DEBUG_MODE=info
 # Install cdxgen
 RUN npm install -g @cyclonedx/cdxgen
 # Install git
-RUN dnf install git -y
+# RUN dnf install git -y
+RUN apt-get update && \
+    apt-get install -y git && \
+    rm -rf /var/lib/apt/lists/*
 
 # Don't run as root
 USER 1001
