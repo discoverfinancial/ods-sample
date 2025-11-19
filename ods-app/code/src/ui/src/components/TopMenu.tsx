@@ -165,7 +165,7 @@ const TopMenu: React.FC<Props> = ({ isAdmin = false, links, adminLinks, rightLin
         <div className="top-menu-container">
             <div className="top-menu">
                 <div style={{ backgroundImage: "url(/surveyorEye.svg)"}}
-                    className="top-menu-logo">Surveyor</div>
+                    className="top-menu-logo">Ods App</div>
                     {collapseMenu && <div className="top-menu-links top-menu-links--right">
                         <IconButton
                             className={allMenuOpen ? 'top-menu-menu-btn top-menu-menu-btn--expanded' : 'top-menu-menu-btn'}
