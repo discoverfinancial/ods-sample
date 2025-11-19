@@ -45,6 +45,13 @@ const passwords: any = {
     editor: 'pw',
 };
 
+/**
+ * Get the default user for a role.
+ *
+ * @param role The role name
+ * @param app The app name
+ * @returns {UserContext | null} The default user for the role
+ */
 export function getDefaultUserForRole(role: string, app?: string) {
     const r = Object.values(Role).find(r => r === role);
     if (r) {
@@ -87,9 +94,10 @@ export class MyUserProfileService implements EtlProfileService {
             }
         }
 
+        // If uid is the api token, return default admin user
         const apiToken = process.env['API_TOKEN'] || process.env['DLMS_ADMIN_admin'];
         if (apiToken && claimsOrUid === apiToken) {
-            console.log('loginUser matches API_TOKEN, so just get context for admin');
+            console.log('getProfile matches API_TOKEN, so get context for admin');
             const ctx = getDefaultUserForRole(Role.Administrator, "Api Token");
             console.log("ctx=", ctx);
             if (ctx) {
@@ -104,6 +112,7 @@ export class MyUserProfileService implements EtlProfileService {
             if (claimsOrUid == key) {
                 const u = getDefaultUserForRole(role, app);
                 if (u) {
+                    console.log('getProfile matches API_KEYS, so get context for role '+role+' and app '+app);
                     return [ { user: u } ];
                 }
             }
@@ -135,7 +144,18 @@ export class MyUserProfileService implements EtlProfileService {
      */
     async verify(uid: string, pwd: string): Promise<UserContext> {
         console.log(`MyUserProfileService.verify: uid=${uid}`);
+
         if (!passwords.hasOwnProperty(uid) || !(passwords[uid] == pwd)) {
+
+            // If uid is the api token, return default admin user
+            const apiToken = process.env['API_TOKEN'] || process.env['DLMS_ADMIN_admin'];
+            if (apiToken && pwd === apiToken) {
+                console.log('verify matches API_TOKEN, so just get context for admin');
+                const ctx = getDefaultUserForRole(Role.Administrator, "Api Token");
+                if (ctx) {
+                    return { user: ctx };
+                }
+            }
 
             // Get API keys from the environment variable.
             // Format is "key:role:appName" such as "12345678:Editor:DLMS App,876543:Admin:Demo App"
@@ -154,7 +174,7 @@ export class MyUserProfileService implements EtlProfileService {
                     
                             // User must have the specified role
                             if (ctx.user.roles.includes(parts[1])) {
-                                console.log('loginUser matches API_KEYS for app '+app+' and role '+parts[1]+', so just get context for user');
+                                console.log('verify matches API_KEYS, so get context for role '+parts[1]+' and app '+app);
                                 return ctx;
                             }
                         }
