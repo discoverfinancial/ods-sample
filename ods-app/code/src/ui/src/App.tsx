@@ -16,7 +16,6 @@ import LogsPage from './LogsPage';
 import TestPage from './Test';
 import AlertPopup, { AlertPopupSettings } from './components/AlertPopup';
 import HelpPage from './HelpPage';
-import QueryListPage from './QueryListPage';
 import ImportPage from "./ImportPage";
 import EtlPage from './EtlPage';
 import LibrariesListPage from './LibrariesListPage';
@@ -377,7 +376,6 @@ const App: React.FC<Props> = ({ }) => {
                         <Route path="/list" element={<DocumentListPage context={context} />} />
                         <Route path="/mostused" element={<MostUsedListPage context={context} />} />
                         <Route path="/toplevel" element={<TopLevelListPage context={context} />} />
-                        <Route path="/query" element={<QueryListPage context={context} />} />
                         <Route path="/serverscript" element={<ScriptsListPage context={context} type={"user"} />} />
                         <Route path="/serverscript/:id" element={<ScriptEditor context={context} type={"user"} />} />
                         <Route path="/adminscript" element={<ScriptsListPage context={context} type={"admin"} />} />
