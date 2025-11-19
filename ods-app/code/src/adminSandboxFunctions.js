@@ -7,6 +7,7 @@ const axios = require("axios");
 const { Logger } = require("dlms-server");
 
 const { SbomClient } = require("./etl/bom/index");
+const { GuidanceProcessor } = require("./etl/guidance/GuidanceProcessor");
 const { DepsdevClient } = require("./etl/depsdev/DepsdevClient");
 const { compareVersions, sbomType } = require("ods-framework");
 const { Role } = require("ods-framework");
@@ -196,6 +197,19 @@ define("query", async ([match, projection, limit, sort, database], { respond, fa
         if (limit) { options["limit"] = limit; }
         if (sort) { options["sort"] = sort; }
         const r = await global.mgr.getDocs(global.ctx, type, match, options);
+        respond(r);
+    } catch (e) {
+        fail(e);
+    }
+})
+
+// GUIDANCE PROCESSOR
+
+define("getGuidanceDocs", async ([params], { respond, fail }) => {
+    try {
+        console.log("global=", global)
+        const client = new GuidanceProcessor(global.etl);
+        const r = await client.getGuidanceDocs(global.ctx, params);
         respond(r);
     } catch (e) {
         fail(e);
