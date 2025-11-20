@@ -14,15 +14,19 @@ import {
   Button,
   Drawer,
   Tooltip,
+  TextField,
 } from '@mui/material';
-import { AppContext } from './common';
+import { AppContext, formatDate } from './common';
 import { Alert } from '@mui/material'
 import UserAvatar from './components/UserAvatar';
 import { ApiTokenMgr } from './managers/ApiTokenMgr';
-import { ApiTokenCreate, ApiTokenSummary } from './common';
+import { ApiTokenCreate, ApiTokenSummary, ApiKeyCreate, ApiKeySummary } from './common';
+import { ApiKeyMgr } from './managers/ApiKeyMgr';
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
 import ContentCopyOutlinedIcon from '@mui/icons-material/ContentCopyOutlined';
+import LockResetRoundedIcon from '@mui/icons-material/LockResetRounded';
 import SecretField from './components/SecretField';
+import { v4 as uuidv4 } from 'uuid';
 
 const Item = styled(Paper)(({ theme }) => ({
   ...theme.typography.body1,
@@ -49,23 +53,34 @@ type Props = {
 
 const Navbar: React.FC<Props> = React.memo(({context, errors}) => {
     const user = context.user;
-    const mgr = ApiTokenMgr.getInstance();
+    const apiTokenMgr = ApiTokenMgr.getInstance();
+    const apiKeyMgr = ApiKeyMgr.getInstance();
 
     const links: navItemType[] = [];
     
     const [showProfile, setShowProfile] = useState<boolean>(false);
     const [apiToken, setApiToken] = useState<ApiTokenSummary>();
+    const [apiKeys, setApiKeys] = useState<any>();
 
     useEffect(() => {
         const doWork = async () => {
             // retrieve apitoken information if there is one
             try {
-            const result = await mgr.getDocuments({params: {match: { "owner.email": context.user.email}}})
-            if (result && result.length) {
-                setApiToken(result[0]);
-            }
+                const result = await apiTokenMgr.getDocuments({params: {match: { "owner.email": context.user.email}}})
+                if (result && result.length) {
+                    setApiToken(result[0]);
+                }
             } catch (e) {
                 console.log("Error getting api token: ", e);
+            }
+            // retrieve apikeys information
+            try {
+                const result = await apiKeyMgr.getDocuments({})
+                if (result && result.length) {
+                    setApiKeys(result);
+                }
+            } catch (e) {
+                console.log("Error getting api keys: ", e);
             }
         }
 
@@ -76,16 +91,51 @@ const Navbar: React.FC<Props> = React.memo(({context, errors}) => {
         const tokenData: ApiTokenCreate = {
             name: "User Api Token"
         }
-        const result = await mgr.createDocument(tokenData);
+        const result = await apiTokenMgr.createDocument(tokenData);
         if (result) {
             setApiToken(result);
         }
     }
 
     const deleteApiToken = async (id: string) => {
-        const result = await mgr.deleteDocument(id);
+        const result = await apiTokenMgr.deleteDocument(id);
         if (result) {
             setApiToken(undefined);
+        }
+    }
+
+    const createApiKey = async (key: string, role: string, app: string) => {
+        const keyData: ApiKeyCreate = {
+            key: key,
+            role: role,
+            app: app,
+        }
+        const result = await apiKeyMgr.createDocument(keyData);
+        if (result) {
+            const updatedKeys = await apiKeyMgr.getDocuments({});
+            setApiKeys(updatedKeys);
+        }
+    }    
+
+    const updateApiKey = async (id: string, key: string, role: string, app: string) => {
+        const keyData: ApiKeyCreate = {
+            id: id,
+            key: key,
+            role: role,
+            app: app,
+        }
+        const result = await apiKeyMgr.saveDocument(keyData);
+        if (result) {
+            const updatedKeys = await apiKeyMgr.getDocuments({});
+            setApiKeys(updatedKeys);
+        }
+    }    
+
+    const deleteApiKey = async (id: string) => {
+        const result = await apiKeyMgr.deleteDocument(id);
+        if (result) {
+            const updatedKeys = await apiKeyMgr.getDocuments({});
+            setApiKeys(updatedKeys);
         }
     }
 
@@ -159,6 +209,102 @@ const Navbar: React.FC<Props> = React.memo(({context, errors}) => {
         }
     }
 
+    const renderApiKeys = () => {
+
+        return (
+            <table className="roundedTable" style={{}}>
+                <thead>
+                    <tr><td style={{textAlign:"center"}}>Api Key</td>
+                        <td style={{textAlign:"center"}}>Role</td>
+                        <td style={{textAlign:"center"}}>App Name</td>
+                        <td style={{textAlign:"center"}}>Date</td>
+                        <td style={{textAlign:"center"}}>Expires</td>
+                        <td style={{textAlign:"center"}}>Action</td>
+                    </tr>
+                </thead><tbody>
+                {apiKeys && apiKeys.map((key: any, index: number) => {
+                    return (
+                        <tr>
+                            <td style={{paddingTop:"16px"}}>
+                                <SecretField value={key.key} readonly={true} />
+                                <Tooltip title="Copy token to clipboard">
+                                    <Button variant="text"  className="tablebutton" style={{paddingLeft:"0px"}} onClick={() => { navigator.clipboard.writeText(key.key) }}>
+                                        <ContentCopyOutlinedIcon/>
+                                    </Button>
+                                </Tooltip>
+                            </td>
+                            <td style={{paddingTop:"16px"}}>
+                                <TextField id={key.id+"_role"} label="Role" variant="outlined" size="small" defaultValue={key.role} />
+                            </td>
+                            <td style={{paddingTop:"16px"}}>
+                                <TextField id={key.id+"_app"} label="App Name" variant="outlined" size="small" defaultValue={key.app} />
+                            </td>
+                            <td style={{paddingTop:"16px"}}>{formatDate(key.dateUpdated)}</td>
+                            <td style={{paddingTop:"16px"}}>{formatDate(key.expirationDate)}</td>
+
+                            <td style={{paddingTop:"16px"}}>
+                                <Button className="buttonLink" onClick={()=>{ 
+                                    updateApiKey(key.id, 
+                                        key.key, 
+                                        (document.getElementById(`${key.id}_role`) as HTMLInputElement).value, 
+                                        (document.getElementById(`${key.id}_app`) as HTMLInputElement).value);
+                                }}>Update</Button><br/>
+                                <Button className="buttonLink" onClick={()=>{ deleteApiKey(key.id) }}>Delete</Button>
+                            </td>
+                        </tr>
+                    )
+                })}
+                <tr>
+                    <td style={{paddingTop:"16px"}}>
+                        <TextField id="newKey" label="Api Key" variant="outlined" size="small" />
+                        <Tooltip title="Generate key">
+                            <Button variant="text"  className="tablebutton" style={{paddingLeft:"16px"}} onClick={() => { 
+                                const newKey = uuidv4();
+                                (document.getElementById("newKey") as HTMLInputElement).value = newKey;
+                                }}>
+                                <LockResetRoundedIcon/>
+                            </Button>
+                        </Tooltip>
+                        <Tooltip title="Copy key to clipboard">
+                            <Button variant="text"  className="tablebutton" style={{paddingLeft:"22px"}} 
+                                onClick={() => { 
+                                    const key = (document.getElementById("newKey") as HTMLInputElement).value;
+                                    navigator.clipboard.writeText(key) 
+                                }}>
+                                <ContentCopyOutlinedIcon/>
+                            </Button>
+                        </Tooltip>
+
+                    </td>
+                    <td style={{paddingTop:"16px"}}>
+                        <TextField id="newRole" label="Role" variant="outlined" size="small" />
+                    </td>
+                    <td style={{paddingTop:"16px"}}>
+                        <TextField id="newApp" label="App Name" variant="outlined" size="small" />
+                    </td>
+                    <td>
+                    </td>
+                    <td>
+                    </td>
+                    <td style={{paddingTop:"16px"}}>
+                        <Button className="buttonLink" onClick={async ()=>{ 
+                            const key = (document.getElementById("newKey") as HTMLInputElement).value;
+                            const role = (document.getElementById("newRole") as HTMLInputElement).value;
+                            const app = (document.getElementById("newApp") as HTMLInputElement).value;
+                            await createApiKey(key, role, app); 
+                            (document.getElementById("newKey") as HTMLInputElement).value = "";
+                            (document.getElementById("newRole") as HTMLInputElement).value = "";
+                            (document.getElementById("newApp") as HTMLInputElement).value = "";
+                        }}>Create</Button>
+                    </td>
+                </tr>
+            </tbody></table>
+        )
+    }
+
+    const url = "https://dta-images.discoverfinancial.com/profile/" + encodeURI(user.email);
+    //'/defaultuser.svg'
+
     return (
         <>
             <div id='navbar' style={{ position: 'sticky', top: 0, zIndex: 120 }} className='bg-navbar-dark'>
@@ -219,6 +365,13 @@ const Navbar: React.FC<Props> = React.memo(({context, errors}) => {
                                             <div className="detailDiv">
                                                 { renderApiToken() }
                                             </div>
+                                            {context?.isAdministrator && <div style={{marginTop: "10px", marginBottom: "20px"}}>
+                                                <div className="loggedinuserHeader loggedinuserSubheader spacer">Api Keys</div>
+                                                <div className="detailDiv">
+                                                    {/* {JSON.stringify(apiKeys)} */}
+                                                    { renderApiKeys() }
+                                                </div>
+                                            </div>}
                                             {context?.info?.basicAuthEnabled=="true" && <div className="detailDiv">
                                                 <Button onClick={() => {
                                                     window.location.href = '/logout'
