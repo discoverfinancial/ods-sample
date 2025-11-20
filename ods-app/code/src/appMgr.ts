@@ -415,12 +415,13 @@ export class AppMgr extends Ods {
         }
 
         // Add an Api key
-        const r = await this.getDocs(this.getAdminContext(), apikeyType, {key: "abc"});
-        if (!r) {
+        const r = await this.getDocs(this.getAdminContext(), apikeyType, {key: "admin-api-key"});
+        if (!r || r.length == 0) {
             await this.createDoc(this.getAdminContext(), apikeyType, {
-                key: "abc",
-                role: "Admin",
-                app: "Test"
+                key: "admin-api-key",
+                role: Role.Administrator,
+                app: "ODS Sample App",
+                expirationDate: Date.now() + (60*60*24*365)*1000,
             });
         }
         log.debug("AppMgr onInit() finished");
