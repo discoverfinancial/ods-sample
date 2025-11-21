@@ -4,7 +4,7 @@ ODS App, as an Operational Data Store, is capable of collecting and processing a
 
 ### The Background
 
-ODS App is part of the [ODS Surveyor](https://www.github.com/discoverfinancial/ods-surveyor) family.  It is derived from that codebase, but pared down to just the core functionality.  ODS Surveyor has built-in support for SBOMs, LeanIX, Nexus and other data sources which will probably only broaden over time.  But ODS App is meant to be a template from which to build and expand your ODS system without carrying the full weight of ODS Surveyor if your goals are not the same.  ODS App supports CycloneDX SBOMs by default and has data clients for Cdxgen, Deps.dev and Endoflife.date.  These data clients will augment the information available about the software represented by the SBOMs. 
+ODS App is part of the [ODS Framework](https://www.github.com/discoverfinancial/ods-framework) family.  ODS App is meant to be a template from which to build and expand your ODS system.  ODS App supports CycloneDX SBOMs by default and has data clients for Cdxgen, Deps.dev and Endoflife.date.  These data clients will augment the information available about the software represented by the SBOMs. 
 
 ### The Vision
 
@@ -14,9 +14,9 @@ When you are ready to get your hands dirty, fork this repo and try your hand at 
 
 ## Getting Started
 
-### ODS Surveyor Capabilities
+### ODS App Capabilities
 
-Visit the [project docs](./docs/README.md) to learn about the features shared by ODS Surveyor and its template application.
+Visit the [project docs](./docs/README.md) to learn about the features and its template application.
 
 ### Using the Application
 

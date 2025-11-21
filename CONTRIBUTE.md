@@ -13,13 +13,12 @@ Foundation Antitrust Policy](https://www.linuxfoundation.org/antitrust-policy/),
 We welcome any feedback on the quality, stability or performance of ODS.  If you see incorrect behavior or would like to suggest ways to improve ODS, please use these guidelines to create an issue in GitHub.
 1. Please [check](https://github.com/discoverfinancial/ods-framework/issues) whether there is already an open issue related to your experience/feedback. If there is, join the discussion and contribute any observations or information that may not already be present in the issue.
 2. If there isn't already a relevant issue, create one using one of the provided templates.  Please provide the following information:
-    1. Add appropriate tag for project -> [`ods-framework`, `ods-surveyor`, `ods-sample`]
+    1. Add appropriate tag for project -> [`ods-framework`, `ods-sample`]
         * ods-framework - Core ODS framework functionality
-        * ods-surveyor - Data surveyor tool for profiling and assessing data quality
         * ods-sample - Sample applications demonstrating ODS functionality
-    3. Add appropriate tag for type of issue -> [`bug`, `enhancement`]
-    4. (optional) Add tag for required specialties -> [`design thinking`, `project management`, `question`, `documentation`]
-    5. Set `Projects` field to `ODS`
+    2. Add appropriate tag for type of issue -> [`bug`, `enhancement`]
+    3. (optional) Add tag for required specialties -> [`design thinking`, `project management`, `question`, `documentation`]
+    4. Set `Projects` field to `ODS`
 3. If you are reporting a problem that exists in ODS, try to convey answers for the following:
     * Is the bug reproducible as explained?
     * Is it reproducible in other environments (for instance, on different browsers or devices)?
