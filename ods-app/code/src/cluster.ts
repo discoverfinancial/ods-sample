@@ -2,7 +2,7 @@
  * Copyright (c) 2025 Capital One
 */
 
-// Run Surveyor app as cluster, using up to 4 CPUs
+// Run Ods app as cluster, using up to 4 CPUs
 
 var cluster = require('cluster');
 var numCPUs = require('os').cpus().length;

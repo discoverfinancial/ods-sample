@@ -70,7 +70,7 @@ const emailDebug = process.env.EMAIL_DEBUG;
 const adminEmail = process.env["ADMIN_EMAIL"] || "";
 const enableUtf8Validation = (process.env["enableUtf8Validation"] == "false") ? false : true;
 console.log("enableUtf8Validation =", enableUtf8Validation);
-const dbApp = process.env["DB_APP"] || "odsapp"; // "surveyor";
+const dbApp = process.env["DB_APP"] || "odsapp";
 const etlEnabled = process.env.ETL_ENABLED === 'true';
 
 let dropDb = 0;
@@ -446,7 +446,6 @@ export class AppMgr extends Ods {
      * @param next Next middleware function.
      */
     public allowCrossDomain(_req: express.Request, res: express.Response, next: express.NextFunction) {
-        console.log("SURVEYOR allowCrossDomain()")
         let authRequest = false;
         if (_req.headers?.['access-control-request-headers']?.includes('authorization') || _req.headers?.authorization) {
             authRequest = true;
