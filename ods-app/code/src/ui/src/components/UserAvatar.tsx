@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { Avatar } from '@mui/material';
-import { Person } from 'dlms-base';
+import { Person } from 'ods-common';
 
 const getInitials = (name: string) => {
     var names = name.split(' '),

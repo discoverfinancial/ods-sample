@@ -2,7 +2,7 @@
  * Copyright (c) 2025 Capital One
 */
 
-import { UserContext } from 'dlms-base';
+import { UserContext } from 'ods-common';
 import { Config, throwErr } from 'dlms-server';
 import { Role } from './ui/src/common/states';
 import { EtlProfileService } from 'ods-framework';

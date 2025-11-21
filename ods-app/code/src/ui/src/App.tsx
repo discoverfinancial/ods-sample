@@ -19,7 +19,7 @@ import HelpPage from './HelpPage';
 import ImportPage from "./ImportPage";
 import EtlPage from './EtlPage';
 import LibrariesListPage from './LibrariesListPage';
-import { User } from 'dlms-base';
+import { User } from './common';
 import { Role } from './common';
 import { Http } from './Http';
 import { Buffer } from 'buffer';
