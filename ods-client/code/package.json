@@ -1,7 +1,7 @@
 {
-	"name": "reactapp",
+	"name": "ods-client",
 	"version": "1.0.0",
-	"description": "React ODS App",
+	"description": "React ODS Client App",
 	"scripts": {
 		"clean": "rm -rf node_modules && rm -rf build && rm -rf src/ui/node_modules && rm -rf src/ui/build && rm package-lock.json; rm src/ui/package-lock.json",
 		"test": "ts-node test/test.ts createSbom https://github.com/finos/a11y-theme-builder.git",

@@ -1,7 +1,7 @@
 {
-	"name": "surveyor-app",
+	"name": "ods-app",
 	"version": "1.0.0",
-	"description": "Surveyor App",
+	"description": "Ods App",
 	"scripts": {
 		"clean": "rm -rf node_modules && rm -rf build && rm -rf src/ui/node_modules && rm -rf src/ui/build && rm package-lock.json; rm src/ui/package-lock.json",
 		"test": "jest --watchAll=false --coverage",
