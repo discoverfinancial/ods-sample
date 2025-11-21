@@ -2,7 +2,7 @@
  * Copyright (c) 2025 Capital One
 */
 
-import { AttachmentInfo, CommentCreate, CommentInfo, StateHistory, User } from "ods-framework";
+import { AttachmentInfo, CommentCreate, CommentInfo, StateHistory, User } from "ods-common";
 
 export const endoflifeType = "endoflife";
 
