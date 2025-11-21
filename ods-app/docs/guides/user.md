@@ -83,6 +83,6 @@ You'll notice that on this menu you will have the ability to create a user token
 
 ## Summary
 
-The UI of the ODS App shows many of the features available in an ODS Server.  While ODS App is meant to be a minimal application compared to [ODS Surveyor](https://github.com/discoverfinancial/ods-surveyor), it is still feature rich.  It is meant to give you a taste of what is possible without being overwhelming as well as being the starting point upon which another, more elaborate ODS application could be built.
+The UI of the ODS App shows many of the features available in an ODS Server.  While ODS App is meant to be a minimal application, it is still feature rich.  It is meant to give you a taste of what is possible without being overwhelming as well as being the starting point upon which another, more elaborate ODS application could be built.
 
 If this is of interest to you, please [reach out to our community](../../../README.md#learn-more-give-feedback) to discuss your goals. 

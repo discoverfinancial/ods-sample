@@ -278,7 +278,7 @@ Axios DELETE
 
 #### getDocs(type, match, options)
 
-Retrieves documents based on the specified query. This method enables any table in the Surveyor database to be queried.
+Retrieves documents based on the specified query. This method enables any table in the Ods database to be queried.
 *   returns Array of objects
 *   **type:** (string) The document type. The current types are: sbom2, leanix, attestation, attestationDefinition, depsdev, feedback, guidance, issue, notebookvar, query, script, sonarqube, store, logs, apitokens.
 *   **match:** (object) The MongoDB match object.
@@ -286,7 +286,7 @@ Retrieves documents based on the specified query. This method enables any table 
 
 #### getDoc(type, id, projection)
 
-Gets the document for the id from any table in the Surveyor database.
+Gets the document for the id from any table in the Ods database.
 *   returns object
 *   **type:** (string) The document type. The current types are: sbom2, leanix, attestation, attestationDefinition, depsdev, feedback, guidance, issue, notebookvar, query, script, sonarqube, store, logs, apitokens
 *   **id:** (string) The document id.
