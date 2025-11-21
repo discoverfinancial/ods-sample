@@ -1124,3 +1124,53 @@ body.only-div .only-show-div {
   padding-right: 10px;
   text-align: left;
 }
+
+.mdTable table {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-1);
+}
+
+.mdTable tr:last-child td:first-child,
+tr:last-child,
+.mdTable {
+  border-bottom-left-radius: var(--radius-1);
+}
+
+.mdTable tr:last-child td:last-child,
+tr:last-child,
+.mdTable {
+  border-bottom-right-radius: var(--radius-1);
+}
+
+.mdTable tr:first-child th:first-child,
+tr:first-child,
+.mdTable {
+  border-top-left-radius: var(--radius-1);
+}
+
+.mdTable tr:first-child th:last-child,
+tr:first-child,
+.mdTable {
+  border-top-right-radius: var(--radius-1);
+}
+
+.mdTable tr:nth-child(2n) {
+  background-color: var(--Slate-0);
+  color: var(--on-Slate-0);
+}
+
+.mdTable th {
+  background-color: var(--Slate-0);
+  color: var(--on-Slate-0);
+  padding: var(--spacing-2);
+}
+
+.mdTable tr {
+  background-color: #f8f8f8;
+  color: var(--on-Slate-0);
+}
+
+.mdTable td {
+  padding-left: var(--spacing-2);
+  padding-right: var(--spacing-2);
+}

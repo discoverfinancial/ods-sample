@@ -35,6 +35,7 @@ export interface Notebook {
 
 export interface NotebookCell {
     id: string;
+    name: string;
     type: string;           // "code" | "text";
     data: string;
     view: string[];         // "tree" | "raw" | "sbom" | "json" | editor, preview;
@@ -79,6 +80,7 @@ const NotebookEditor: React.FC<Props> = ({ context }) => {
     const [currentNotebook, setCurrentNotebook] = useState<ScriptInfo>();
     const [notebook, setNotebook] = useState<Notebook>({cells: []});
     const [cellIds, setCellIds] = useState<string[]>([]);
+    const [cellNames, setCellNames] = useState<any>({});
     const [notebookName, setNotebookName] = useState<string>("");
     const [notebookPublic, setNotebookPublic] = useState<boolean>(true);
     const [notebookTag, setNotebookTag] = useState<string>("");
@@ -272,6 +274,7 @@ const NotebookEditor: React.FC<Props> = ({ context }) => {
                             type: cell.type,
                             data: cell.data,
                             id: cell.id,
+                            name: cell.name,
                             view: cell.view,
                             parameters: cell.parameters,
                             columns: cell.columns,
@@ -611,10 +614,15 @@ const NotebookEditor: React.FC<Props> = ({ context }) => {
     useEffect(() => {
         if (notebook) {
             const _cellIds = [];
+            const _cellNames:any = {};
             for (var i=0; i<notebook.cells.length; i++) {
                 _cellIds.push(notebook.cells[i].id);
+                if (notebook.cells[i].name) {
+                    _cellNames[notebook.cells[i].name || ""+i] = notebook.cells[i].id;
+                }
             }
             setCellIds(_cellIds);
+            setCellNames(_cellNames);
         }
     }, [notebook])
 
@@ -703,6 +711,7 @@ const NotebookEditor: React.FC<Props> = ({ context }) => {
                     notebook={notebook}
                     cellChanged={cellChanged}
                     cellIds={cellIds}
+                    cellNames={cellNames}
                     cell={notebook.cells[i]} 
                     index={i}
                     insertCell={insertCell}
@@ -734,12 +743,12 @@ const NotebookEditor: React.FC<Props> = ({ context }) => {
         const _notebook:Notebook = {cells: []};
         for (var i=0; i<notebook.cells.length; i++) {
             if (i == insertAtIndex) {
-                _notebook.cells.push({type:"code", data:"// Add your code here\nsetResult('');", id:uuidv4(), view:["raw"]})
+                _notebook.cells.push({type:"code", data:"// Add your code here\nsetResult('');", id:uuidv4(), name: "", view:["raw"]})
             }
             _notebook.cells.push(notebook.cells[i]);
         }
         if (insertAtIndex == notebook.cells.length) {
-            _notebook.cells.push({type:"code", data:"// Add your code here\nsetResult('');", id:uuidv4(), view:["raw"]})
+            _notebook.cells.push({type:"code", data:"// Add your code here\nsetResult('');", id:uuidv4(), name: "", view:["raw"]})
         }
         setNotebook(_notebook);
     }

@@ -84,15 +84,27 @@ const JsonDataGrid: React.FC<Props> = ({
             keys.forEach((key,index) => {
                 const colDef:any = {
                     field: key,
+                    valueGetter: function(params: any) {
+                        const value = params.data[key];
+                        // console.log("valueGetter params=", value, "typeof=", typeof value);
+                        if (typeof value != "object") {
+                            return value;
+                        }
+                        else {
+                            return JSON.stringify(value)
+                        }
+                    },
                     cellRenderer: function(params: any) {
+                        const value = params.data[key];
+                        // console.log("cellRenderer params=", value);
                         let v = "";
                         let t = <></>
-                        if (typeof params.value == "string") {
-                            v = params.value;
+                        if (typeof value == "string") {
+                            v = value;
                             t = <div>{v}</div>
                         }
                         else {
-                            v = JSON.stringify(params.value,null,4)
+                            v = JSON.stringify(value,null,4)
                             t = <pre>{v}</pre>
                         }
                         return (

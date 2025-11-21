@@ -62,7 +62,8 @@ const NotebooksListPage: React.FC<Props> = ({ context }) => {
 
     let _searchText = window.localStorage.getItem("listNotebooksSearchText") || ""
     const [searchText, setSearchText] = useState<string>( _searchText);
-    const [fullTextSearch, setFullTextSearch] = useState<boolean>(false);
+    let _fullTextSearch = window.localStorage.getItem("listNotebooksFullTextSearch") == "true" ? true : false;
+    const [fullTextSearch, setFullTextSearch] = useState<boolean>(_fullTextSearch);
 
     useEffect(() => {
         console.log(`showSpinner="${showSpinner}"`)
@@ -148,6 +149,7 @@ const NotebooksListPage: React.FC<Props> = ({ context }) => {
     async function handleSearchButton(event: any) {
         console.log("Search pressed: search value =", searchText);
         window.localStorage.setItem("listNotebooksSearchText", searchText);
+        window.localStorage.setItem("listNotebooksFullTextSearch", fullTextSearch ? "true" : "false");
         await loadScriptNotebooks();        
     }
 
@@ -240,11 +242,11 @@ const NotebooksListPage: React.FC<Props> = ({ context }) => {
                     }
                     const _newNotebook:Notebook = {
                         cells: [
-                            {type:"code", data:`// Add your first code block here
+                            {name: "", type:"code", data:`// Add your first code block here
 const r = getSboms({params: {match: {"metadata.component.name": {$regex: "^spring-boot$"}}}});
 setResult(r);`, id:uuidv4(), view:["sbom"], parameters:{}},
-                            {type:"text", data:"// Add your first text block here", id:uuidv4(), view:["editor","preview"], parameters:{}},
-                            {type:"code", data:"// Add your second code block here\nsetResult('Hello World');", id:uuidv4(), view:["raw"], parameters:{}},
+                            {name: "", type:"text", data:"// Add your first text block here", id:uuidv4(), view:["editor","preview"], parameters:{}},
+                            {name: "", type:"code", data:"// Add your second code block here\nsetResult('Hello World');", id:uuidv4(), view:["raw"], parameters:{}},
                         ]
                     }
                     // console.log("_newNotebook=", _notebook)

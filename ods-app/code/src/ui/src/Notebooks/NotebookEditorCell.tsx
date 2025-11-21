@@ -90,6 +90,7 @@ const StyledFormControlLabel = styled(FormControlLabel)({
 });
 
 let editorCodeChanged = false;
+let nameChanged = false;
 let timeOutId:any;
 
 interface Props {
@@ -99,6 +100,7 @@ interface Props {
     notebook: Notebook;
     cellChanged(index: number, refresh?: boolean): any;
     cellIds: string[];
+    cellNames: any;
     cell: NotebookCell;
     index: number;
     insertCell(position: number, index: number): any;
@@ -116,6 +118,7 @@ const NotebookEditorCell: React.FC<Props> = ({ context, setShowSpinner,
     notebook,
     cellChanged,
     cellIds,
+    cellNames,
     cell, index,
     insertCell,
     moveCell,
@@ -129,6 +132,8 @@ const NotebookEditorCell: React.FC<Props> = ({ context, setShowSpinner,
 
     const [cellResults, setCellResults] = useState<any>();
     const [cellData, setCellData] = useState<string>(); // used only for jsx cell type
+
+    const [initComplete, setInitComplete] = useState<boolean>(false);
 
     const _setCellData = (data: string, runCell=false) => {
         console.log("$$$$ _setCellData()")
@@ -285,8 +290,13 @@ function _setResult(data) {
     setResult({value: data});
 }
 function getCellResult(index) {
-    const id = ${JSON.stringify(cellIds)}[index];
-    return getNotebookVar("${notebookId}", "cellResult_"+id);
+    let id = ${JSON.stringify(cellIds)}[index];
+    if (!id) {
+        id = ${JSON.stringify(cellNames)}[index];
+    }
+    if (id) {
+        return getNotebookVar("${notebookId}", "cellResult_"+id);
+    }
 }
 
 async function run() {
@@ -314,6 +324,170 @@ if (r) {
         else if (cell.type == "jsx") {
             _setCellData(cell.data);
         }
+
+        if (cell.type == "text") {
+
+            console.log("Running cell");
+            console.log("notebookId =", notebookId);
+            setShowSpinner(`Running cell ${index}...`)
+            try {
+                const r = await scriptMgr.runScript({
+                    script:
+                        `
+function getVars(name, value) {
+    return getNotebookVars("${notebookId}");
+}
+function getVar(name) {
+    const r = getNotebookVar("${notebookId}", name);
+    if (r) {
+        if (r["_string"]) {
+            return r["_string"];
+        }
+        else if (r["_num"]) {
+            return r["_num"];
+        }
+    }
+    return r;
+}
+function setVar(name, value) {
+    if (typeof value == "string") {
+        value = {_string: value};
+    }
+    else if (typeof value == "number") {
+        value = {_num: value};
+    }
+    setNotebookVar("${notebookId}", name, value);
+}
+function deleteVar(name) {
+    deleteNotebookVar("${notebookId}", name);
+}
+function _setResult(data) {
+    setNotebookVar("${notebookId}", "cellResult_${cell.id}", data);
+    setResult({value: data});
+}
+function getCellResult(index) {
+    let id = ${JSON.stringify(cellIds)}[index];
+    if (!id) {
+        id = ${JSON.stringify(cellNames)}[index];
+    }
+    if (id) {
+        return getNotebookVar("${notebookId}", "cellResult_"+id);
+    }
+}
+
+function renderMarkdown(mdText){
+    const i = mdText.matchAll(/{{([\\s\\S]*?)}}/g);
+    const matches = [];
+    for (const m of i) {
+        // console.log("m=", m.index, m.groups, Object.keys(m));
+        const end = mdText.indexOf("}}", m.index) + 2;
+        matches.push([...m, m.index, end]);
+    }
+    // const matches = Array.from(i);
+    // console.log("matches=", matches, "length=", matches.length);
+    let result = "";
+    for (let j=0; j<matches.length; j++) {
+        const match = matches[j];
+        // console.log("Looking at match=", match);
+        let value = null;
+        try {
+            value = eval(match[0]);
+        } catch (e) {
+            console.log("Error evaluating ", match[0], e);
+            value = "Error evaluating "+match[0]+" : "+e.message;
+        }
+        let s = (typeof value === "object") ? JSON.stringify(value) : value;
+        if (s?.length > 10000) {
+            s = s.substring(0,10000) + "... (truncated, length=" + s.length + ")";
+        }
+        //mdText = mdText.substring(0,match[2]) + s + mdText.substring(match[3]);
+        result += mdText.substring( (j==0) ? 0 : matches[j-1][3], match[2]) + s;
+    }
+    return result;
+}
+
+function renderTable(data, columns) {
+
+    if (typeof data === "string") {
+        return data;
+    }
+    
+    if (Array.isArray(data)) {
+        let table = [];
+        if (!columns || columns.length == 0) {
+            const firstRow = data[0];
+            columns = Object.keys(firstRow);
+        }
+        let header = "|";
+        let separator = "|";
+        for (const col of columns) {
+            header += col+"|";
+            separator += "---|";
+        }
+        table.push(header);
+        table.push(separator);
+        for (const row of data) {
+            let s = "|";
+            for (const col of columns) {
+                let v = row[col];
+                if (typeof v === "object") {
+                    v = JSON.stringify(v);
+                }
+                s += v + "|";
+            }
+            table.push(s);
+        }
+        return "\\r\\n\\r\\n"+table.join("\\r\\n")+"\\r\\n\\r\\n";
+    }
+
+    {
+        let table = [];
+        if (!columns || columns.length == 0) {
+            columns = Object.keys(data);
+            console.log("columns=", columns);
+        }
+        let header = "|||";
+        let separator = "|---|---|";
+        table.push(header);
+        table.push(separator);
+        for (const key of columns) {
+            let v = data[key];
+            if (typeof v === "object") {
+                v = JSON.stringify(v);
+            }
+            s = "|"+key+"|"+v+"|";
+            table.push(s.replaceAll("|", "\\|"));
+        }
+        return "\\r\\n\\r\\n"+table.join("\\r\\n")+"\\r\\n\\r\\n";
+    }
+}
+
+async function run() {
+    const mdText = \`${cell.data}\`;
+    const r = renderMarkdown(mdText);
+    _setResult(r);
+}
+const r = await run();
+if (r) {
+    _setResult(r);
+}
+
+`, parameters: {}
+                }, "user");
+                console.log("r=", r);
+                if (r && r.error) {
+                    await notebookMgr.processPost(`setNotebookvar/${notebookId}/cellResult_${cell.id}`, r);
+                }
+                setCellResults(r);
+                setShowSpinner("")
+            }
+            catch (e) {
+                setShowSpinner("")
+                throw (e);
+            }
+        }
+
+
         else {
             console.log("Not a code cell, so not running")
         }
@@ -450,6 +624,28 @@ if (r) {
         }
     }
 
+    /**
+     * Delete markdown cell results and variable on server
+     * 
+     * @param index The cell index
+     */
+    const deleteMarkdownResults = async () => {
+        if (!updateEnabled) {
+            throw new Error("Only the owner can edit this notebook")
+        }
+        console.log(`deleteMarkdownResults(${index})`);
+        const cellId = cell.id;
+        try {
+            const r = await notebookMgr.processDelete(`deleteNotebookvar/${notebookId}/cellResult_${cellId}`)
+            console.log("cell Results =", r);
+            setCellResults(undefined);
+        }
+        catch (e) {
+            setShowSpinner("")
+            throw (e);
+        }
+    }
+
 
     /**
      * Render the cell
@@ -462,8 +658,24 @@ if (r) {
 
             <div style={{ display: "flex", gap: "20px", paddingBottom: "8px", alignItems:"center" }}>
                 {!presentationMode && <>
-                <h5>Cell {index}</h5>
+                <h5>Cell {index}:</h5>
                 <div></div>
+                <div><b>Name:</b></div>
+                <TextField 
+                    defaultValue={cell.name || index} 
+                    // onChange={(event) => { if (updateEnabled) { setCellName(event)}}}
+                    onChange={(event) => {
+                        nameChanged = true;
+                        cell.name = event.target.value;
+                    }} 
+                    onBlur={() => {
+                        if (nameChanged) {
+                            nameChanged = false;
+                            cellChanged(index, true);
+                        }
+                    }}
+                    style={{ top: "-4px", width: "120px"}}
+                />
                 <div><b>Type:</b></div>
                 <Select
                     value={cell.type}
@@ -490,12 +702,20 @@ if (r) {
                     </Tooltip>
                 }
 
-                {cell.type == "text" &&
+                {cell.type == "text" && !hasResults &&
                     <Tooltip title={"Save Text & All Other Notebook Changes"} placement="bottom-start" enterDelay={500}>
                         <span className="notebookEditorTooltip">
-                        <SaveOutlinedIcon className={iconClassName} onClick={() => { updateNotebook() }} /></span>
+                        {/* <SaveOutlinedIcon className={iconClassName} onClick={() => { updateNotebook() }} /></span> */}
+                        <PlayCircleFilledWhiteOutlinedIcon className={iconClassName} onClick={() => { runCell(cellIds) }}/></span>
                     </Tooltip>
                 }
+                {cell.type == "text" && hasResults &&
+                    <Tooltip title={"Rerun Code"} placement="bottom-start" enterDelay={500}>
+                        <span className="notebookEditorTooltip">
+                        <ReplayOutlinedIcon className={iconClassName} onClick={() => { runCell(cellIds) }} /></span>
+                    </Tooltip>
+                }
+
                 {(cell.type == "text" || cell.type == "jsx") &&
                     <Tooltip title={"Show/Hide Editor"} placement="bottom-start" enterDelay={500}>
                         <span className="notebookEditorTooltip">
@@ -866,6 +1086,10 @@ if (r) {
                 {(presentationMode || (cell.view?.indexOf("preview") > -1)) && <>
                     {!presentationMode && <div className="spacer" style={{ display: "flex", gap: "20px" }}>
                         <div>Preview:</div>
+                        <div style={{ display: "flex", gap: "20px", alignItems:"center", paddingBottom:"8px"  }}>
+                            {updateEnabled && <a onClick={() => deleteMarkdownResults()} style={{ paddingLeft: "20px", paddingRight: "20px" }}>Delete Results</a>}
+                        </div>
+
                     </div>}
 
                     <div
@@ -878,11 +1102,11 @@ if (r) {
                             overflow: "auto",
                             display: "grid",
                         }}>
-                        <div style={{backgroundColor: "white"}}>
+                        <div className="mdTable" style={{backgroundColor: "white"}}>
                             <ReactMarkdown 
                                 remarkPlugins={[remarkGfm]}
                             >
-                                {cell.data}
+                                {(typeof cellResults == "object") ? JSON.stringify(cellResults) : cellResults || cell.data || ""}
                             </ReactMarkdown>
                         </div>
                     </div>
