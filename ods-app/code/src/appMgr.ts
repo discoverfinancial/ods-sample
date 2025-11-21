@@ -11,7 +11,7 @@ import {
     DocType, 
     Config,
     User,
-} from "dlms-server";
+} from "ods-framework";
 import {
     sbomType,
     storeType,

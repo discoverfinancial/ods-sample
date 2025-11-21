@@ -2,7 +2,7 @@
  * Copyright (c) 2025 Capital One
 */
 
-import { UserContext, Logger } from "dlms-server";
+import { UserContext, Logger } from "ods-framework";
 import { SbomDocumentInfo, Role } from "ods-framework";
 import { AppMgr } from "./appMgr";
 

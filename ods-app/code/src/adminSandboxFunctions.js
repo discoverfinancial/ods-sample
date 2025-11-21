@@ -4,7 +4,7 @@
 
 // const { AppMgr } = require("../appMgr");
 const axios = require("axios");
-const { Logger } = require("dlms-server");
+const { Logger } = require("ods-framework");
 
 const { SbomClient } = require("./etl/bom/index");
 const { GuidanceProcessor } = require("./etl/guidance/GuidanceProcessor");

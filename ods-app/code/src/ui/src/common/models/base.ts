@@ -2,7 +2,7 @@
  * Copyright (c) 2025 Capital One
 */
 
-export * from 'dlms-base';
+export * from 'ods-common';
 
 export interface MostUsed {
     name: string;

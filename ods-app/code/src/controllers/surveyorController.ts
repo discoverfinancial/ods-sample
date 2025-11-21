@@ -5,7 +5,7 @@
 import { AppMgr } from "../appMgr";
 import express from "express";
 import { Controller, Route, Get, Post, Patch, Delete, Body, Request, Path, Query, Put } from "tsoa";
-import { Logger } from "dlms-server";
+import { Logger } from "ods-framework";
 import { MostUsed, GetVersions, OssAnalysis } from "../common";
 import { Bom } from "ods-framework";
 

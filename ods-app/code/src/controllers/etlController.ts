@@ -5,7 +5,7 @@
 import { AppMgr } from "../appMgr";
 import express from "express";
 import { Controller, Route, Get, Post, Body, Request, Path } from "tsoa";
-import { Logger } from "dlms-server";
+import { Logger } from "ods-framework";
 import { CdxgenClient } from "../etl/cdxgen";
 import { DepsdevClient } from "../etl/depsdev";
 import { EndoflifeClient } from "../etl/endoflife";

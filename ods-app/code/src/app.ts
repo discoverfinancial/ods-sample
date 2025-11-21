@@ -5,7 +5,7 @@
 const compression = require('compression');
 import express from "express";
 import * as path from "path";
-import { Server, Config, Logger } from "dlms-server";
+import { Server, Config, Logger } from "ods-framework";
 import swaggerUi from "swagger-ui-express";
 import { RegisterRoutes } from "./routes";
 import { RegisterRoutes as RegisterOdsRoutes } from "ods-framework";

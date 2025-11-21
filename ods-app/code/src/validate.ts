@@ -3,7 +3,7 @@
 */
 
 import { assertGuard } from "@nrfcloud/ts-json-schema-transformer";
-import { PostDocs, throwErr, Validate } from "dlms-server";
+import { PostDocs, throwErr, Validate } from "ods-framework";
 import { validatePostDocs, validateGetDocs } from "ods-framework";
 import {
     GuidanceCreate,

@@ -6,7 +6,7 @@ import * as express from "express";
 import { Controller, Get, Path, Route, Request, Query } from "tsoa";
 import { AppMgr } from "../appMgr";
 import { MyUserProfileService } from "../myUserProfileService";
-import { Logger } from "dlms-server";
+import { Logger } from "ods-framework";
 const log = new Logger("DfsServicesController");
 
 @Route("/api")

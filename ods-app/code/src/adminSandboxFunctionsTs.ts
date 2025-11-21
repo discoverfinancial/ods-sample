@@ -7,7 +7,7 @@ This file is used only for typescript validation of the JS file to make developm
 */
 import { AppMgr } from "./appMgr";
 import axios from "axios";
-import { Logger } from "dlms-server";
+import { Logger } from "ods-framework";
 
 import { SbomClient } from "./etl/bom/index";
 import { DepsdevClient } from "./etl/depsdev/DepsdevClient";
@@ -15,7 +15,7 @@ import { EndoflifeClient } from "./etl/endoflife/EndoflifeClient";
 import { compareVersions } from "./util";
 
 import { ETL, Role, sbomType } from "ods-framework";
-import { UserContext } from "dlms-server";
+import { UserContext } from "ods-framework";
 
 const log = new Logger("etl-sandbox");
 

@@ -2,7 +2,7 @@
  * Copyright (c) 2025 Capital One
 */
 
-import { Logger, UserContext } from "dlms-server";
+import { Logger, UserContext } from "ods-framework";
 import { Ods, ETL } from "ods-framework";
 import axios from "axios";
 import { SbomClient } from "../bom";

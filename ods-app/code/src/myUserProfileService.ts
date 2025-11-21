@@ -3,8 +3,8 @@
 */
 
 import { UserContext } from 'ods-common';
-import { Config, throwErr } from 'dlms-server';
-import { Role } from './ui/src/common/states';
+import { Config, throwErr } from 'ods-framework';
+import { Role } from './common/states';
 import { EtlProfileService } from 'ods-framework';
 
 // User profiles that can log in

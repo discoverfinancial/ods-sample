@@ -2,7 +2,7 @@
  * Copyright (c) 2025 Capital One
 */
 
-import { UserContext, Logger, throwErr, Person, LogLevel } from "dlms-server";
+import { UserContext, Logger, throwErr, Person, LogLevel } from "ods-framework";
 import { ETL, STATUS } from "ods-framework";
 import { SbomClient } from "./bom";
 import { CdxgenClient } from "./cdxgen";

@@ -5,7 +5,7 @@
 import { URL } from 'node:url';
 import { getGlobalDispatcher, setGlobalDispatcher, Dispatcher, ProxyAgent } from 'undici';
 import { bootstrap } from 'global-agent';
-import { Logger } from 'dlms-server';
+import { Logger } from 'ods-framework';
 const log = new Logger('proxyConfig');
 
 
