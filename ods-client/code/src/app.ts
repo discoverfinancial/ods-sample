@@ -331,7 +331,7 @@ export const users = [
     {
         id: "admin",
         name: "Admin",
-        roles: [Role.Administrator],
+        roles: [Role.Administrator, Role.Editor, Role.Employee],
         department: "Computer Room",
         email: "admin@test.com",
         title: "Tech Guru",

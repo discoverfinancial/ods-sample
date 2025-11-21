@@ -24,7 +24,7 @@ export const users = [
     {
         id: 'admin',
         name: 'Admin',
-        roles: [Role.Administrator],
+        roles: [Role.Administrator, Role.Editor, Role.Employee],
         department: 'Computer Room',
         email: 'admin@test.com',
         title: 'Tech Guru',
@@ -33,7 +33,7 @@ export const users = [
     {
         id: 'editor',
         name: 'Editor',
-        roles: [Role.Editor],
+        roles: [Role.Editor, Role.Employee],
         department: 'Product Development',
         email: 'editor@test.com',
         title: 'Director',
