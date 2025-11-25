@@ -22,4 +22,4 @@ Visit the [project docs](./docs/README.md) to learn about the features and its t
 
 Interested in exploring ODS App?  Learn how to [install and use](./docs/DEV_GUIDE.md) the system in your own environment.
 
-After you have explored a bit, take a deeper dive into the application by checking out our [user guide](./docs/guides/User.md).
+After you have explored a bit, take a deeper dive into the application by checking out our [user guide](./docs/guides/user.md).
