@@ -78,7 +78,7 @@ To run with no auth
 # from ods-sample/ods-app/code
 code$ npm run debug
 
-# using the run script to load on port 3000
+# as an alternative, use the run script to load on port 3000
 code$ ./run 3000
 ```
 
@@ -152,16 +152,13 @@ If you would prefer to run CDXGEN in a Docker container, that would be possible
 using:
 
 ```
-# create tmp directory where git repos can be cloned temporarily
+# create tmp directory where git repos can be cloned temporarily by cdxgen
 mkdir $HOME/tmp
-cd $HOME/tmp
-git clone https://github.com/discoverfinancial/ods-sample.git
-cd ods-sample/ods-app/code
 
 # build the container
 docker build -t testcdxserver:latest -f ./Dockerfile.cdxgen .
 
 # run the container
-docker run -d -v $HOME/tmp:/tmp -p 9090:9090 -v $(pwd):/app:rw --name test-cdxgen-container testcdxserver:latest
+docker run -d -v $HOME/tmp:/tmp -p 127.0.0.1:9090:9090 -v $(pwd):/app:rw --name test-cdxgen-container testcdxserver:latest
 ```
 

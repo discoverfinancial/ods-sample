@@ -23,6 +23,7 @@ const axios = require("axios")
 const { spawn } = require("child_process");
 const log = new Logger("surveyor-app");
 import { Role } from "./ui/src/common/util";
+const clientServerPort = process.env["PORT"] || "3010";
 const cfg = new Config();
 
 process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = "0";
@@ -155,7 +156,7 @@ async function addCustomRoutes(app: express.Application) {
     }));
 
     app.get("/api/info", function (_req: express.Request, res: express.Response) {
-        const port = process.env["PORT"] || "3010";
+        const port = clientServerPort;
         const baseUrl = process.env["BASE_URL"] || "http://localhost:" + port;
         const oauthEnabled = process.env["OAUTH_ENABLED"] || false;
         const basicAuthEnabled = process.env["BASIC_AUTH_ENABLED"] || false;
@@ -224,7 +225,7 @@ async function addCustomRoutes(app: express.Application) {
 
     if (process.env.NODE_ENV !== "production") {
         // Check if React dev server is running on PORT+1
-        const port = parseInt(process.env["PORT"] || "3010");
+        const port = parseInt(clientServerPort);
         let reactPort = port + 1;
         let found = 0;
         while (found < 2) {
@@ -392,7 +393,7 @@ async function main() {
     // Register any custom routes
     await addCustomRoutes(app);
     app.use(handleError);
-    const port = parseInt(cfg.port);
+    const port = parseInt(clientServerPort);
     app.listen(port, () => {
         log.info(`Listening on port ${port}`);
     });

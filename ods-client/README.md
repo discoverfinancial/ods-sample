@@ -23,6 +23,6 @@ Visit the [ODS App docs](../ods-app/docs/README.md) to learn about its template 
 
 ### Using the Application
 
-Interested in exploring ODS Client?  Learn how to [install and use](./DEV_GUIDE.md) the application in your own environment.
+Interested in exploring ODS Client?  Learn how to [install and use](./docs/DEV_GUIDE.md) the application in your own environment.
 
-Consult our [user guide](./docs/Guides/User.md) to get a better understanding of how to use the client application and the components upon which it is built.
+Consult our [user guide](./docs/guides/user.md) to get a better understanding of how to use the client application and the components upon which it is built.

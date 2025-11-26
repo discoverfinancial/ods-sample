@@ -56,13 +56,13 @@ To run with no auth
 # from ods-sample/ods-client/code
 code$ npm run debug
 
-# using the run script to load on port 3010
+# as an alternative, use the run script to load on port 3010
 code$ ./run 3010
 ```
 
 #### Basic authentication
 
-If basic authentication is enabled, the app shows a login page that authenticates using the credentials defined in [MyUserProfile](./code/src/myUserProfileService.ts).  For example if you login with `uid = admin pwd = pw`, you will be logged in with the "Administrator" role.
+If basic authentication is enabled, the app shows a login page that authenticates using the credentials defined in [MyUserProfileService](./code/src/myUserProfileService.ts).  For example if you login with `uid = admin pwd = pw`, you will be logged in with the "Administrator" role.
 
 ```
 # from ods-sample/ods-client/code

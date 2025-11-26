@@ -1,5 +1,8 @@
 FROM node:24.2.0-bookworm-slim
 
+# Setup HOME
+RUN useradd -m cdxgenuser
+ENV HOME=/home/cdxgenuser
 # Copy source
 RUN mkdir $HOME/scripts
 COPY ./scripts $HOME/scripts
@@ -25,4 +28,4 @@ USER 1001
 EXPOSE 9090
 
 # Start the app
-CMD cdxgen --server --server-host 0.0.0.0 --server-port 9090
+CMD ["cdxgen", "--server", "--server-host", "0.0.0.0", "--server-port", "9090"]
