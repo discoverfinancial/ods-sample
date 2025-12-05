@@ -1,0 +1,4 @@
+echo "REIMPORT-ODS FOR UI"
+npm uninstall ods-common
+npm uninstall ods-framework
+npm install ../../ods-common-1.0.0.tgz

@@ -1,0 +1,14 @@
+/**
+ * Copyright (c) 2025 Capital One
+*/
+
+body {
+  font-family: sans-serif !important;
+  font-size: 16px !important;
+  margin: 0px;
+}
+
+/* Hide reactjs error overlay */
+iframe#webpack-dev-server-client-overlay {
+  display: none;
+}

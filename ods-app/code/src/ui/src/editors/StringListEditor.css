@@ -1,0 +1,44 @@
+/**
+ * Copyright (c) 2025 Capital One
+*/
+
+
+.stringListEditorContainer {
+  display: flex;
+  width: 100%
+}
+
+.chipContainer {
+  padding: var(--spacing-1);
+  width: 100%;
+}
+
+.chipContainer .MuiChip-root {
+  display: inline-flex; /* to offset display: flex rule from Theme.jsx */
+  margin: var(--spacing-1);
+  padding-right: var(--spacing-1);
+}
+
+/* making this match the value of border-radius already on .chipContainer .MuiChip-root
+* otherwise we see gaps
+*/
+.chipContainer .MuiChip-root::before {
+  background: var(--white);
+  color: var(--on-white);
+  top: 0px;
+  bottom: 0px;
+  left: 0px;
+  right: 0px;
+  min-height: unset;
+}
+
+.darkerChips .MuiChip-root::before {
+  background: #EEEEEE;
+}
+
+/* Undoing .MuiChip-root::after styling from Theme.jsx that is overlaying the chip and
+*  preventing the delete click on the chip
+*/
+.chipContainer .MuiChip-root::after {
+  content: none;
+}

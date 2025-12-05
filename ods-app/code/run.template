@@ -1,0 +1,70 @@
+#!/bin/bash
+
+# Rename this file to "run" and add tokens and secrets as appropriate
+
+function usage {
+   if [ $# -ne 0 ]; then
+      echo "ERROR: $*"
+   fi
+   echo "Usage: run port { basic } { production }"
+   echo "       where port = the port number (3000, 3010, 3020)"
+   echo "             Authentication (default is none):"
+   echo "                 basic = basic auth"
+   echo "             production = run in production mode (default is development)"
+   exit 1
+}
+
+function err {
+   echo "ERROR: $*"
+   exit 1
+}
+
+if [ $# -lt 1 ]; then
+   usage
+fi
+
+# The port that the application will run on.  Port 3000 by default.
+PORT=$1
+AUTH=noauth
+NODEENV=development
+
+NAME=...update
+# Token that can be used to execute ODS APIs.  More information available in
+#  DLMS documentation
+API_TOKEN=...update
+# Email server to use if EMAIL_ENABLED=true
+EMAIL_SERVER=...update
+# Secret upon which session data is stored, used for JSON Web Token
+SESSION_SECRET=...update
+
+EMAIL_ENABLED=false
+BASIC_AUTH_ENABLED=false
+# when enabled, cron jobs defined in etlConfig property will be executed.  More
+#  cron-centered environment variables available in ods-framework's etl.ts file.
+CRON_ENABLED=true
+# when enabled, ETL services are available, like logging
+ETL_ENABLED=true
+
+# optional, depending on Mongo settings
+#  make sure to add any defined values to the list of environment variables in CMD below
+#MONGO_USER=
+#MONGO_PASS=
+#MONGO_PORT=
+
+# optional, name to uniquely identify this application's data in the Mongo DB
+#DB_APP=
+
+for arg in "$@"
+do
+    if [ "$arg" = "basic" ]; then
+       BASIC_AUTH_ENABLED=true
+    elif [ "$arg" = "production" ]; then
+        NODEENV=production
+    fi    
+done
+
+CMD="NAME=${NAME} IDS_ADMIN=admin PORT=${PORT} BASE_URL=http://localhost:${PORT} BASIC_AUTH_ENABLED=${BASIC_AUTH_ENABLED} API_TOKEN=${API_TOKEN} SESSION_SECRET=${SESSION_SECRET} EMAIL_ENABLED=${EMAIL_ENABLED} EMAIL_SERVER=${EMAIL_SERVER} NODE_ENV=${NODEENV} ETL_ENABLED=${ETL_ENABLED} CRON_ENABLED=${CRON_ENABLED} npm run debug"
+echo $CMD
+
+eval "${CMD}"
+

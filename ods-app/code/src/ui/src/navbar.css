@@ -1,0 +1,99 @@
+/**
+ * Copyright (c) 2025 Capital One
+*/
+
+.bg-navbar-dark {
+  background: #23233f;
+  color: white;
+  min-height: 62px;
+}
+.navbar-brand {
+  height: 48px;
+}
+.navbar-brand img {
+    height: 48px;
+    width: 128px;
+    transition: 0.4s ease all;
+}
+.icon-nav {
+  position: absolute;
+  display: flex;
+  justify-content: center;
+  right: 10px;
+  top: 0px;
+}
+.nav-item {
+  width: calc((100% - 8px) / 4);
+  text-align: center;
+  padding-right: 0;
+  /* height: 100%; */
+  background-color: unset !important;
+}
+.link-items {
+  height: 100%;
+}
+#navbar .MuiGrid-root.MuiGrid-item {
+  padding-top: 0px;
+}
+.MuiContainer-root.MuiContainer-maxWidthLg.MuiContainer-fixed {
+  max-width: 1320px;
+}
+/*
+#navbar .MuiPaper-root.MuiPaper-elevation {
+  padding-left: 0px;
+}
+*/
+#navbar .MuiButton-text {
+  color: rgba(255, 255, 255, 0.78);
+  text-transform: none;
+  background-color: #23233f;
+}
+#navbar .MuiButton-text:hover {
+    color: white;
+    background-color: #23233f;
+}
+.MuiModal-root .MuiPaper-root.MuiDrawer-paper {
+  top: 64px;
+  padding: 10px;
+}
+
+.loggedinuserHeader {
+  color: #23233f;
+  font-size: var(--h4FontSize);
+  position: relative;
+}
+
+.loggedinuserSubheader {
+  font-size: var(--h5FontSize);
+}
+
+.tablebutton.MuiButton-text {
+  padding: 0px 6px;
+}
+
+/* buttonLink is meant to make a MUI Link
+ * button look like a hotlink.  Using button since
+ * hotlinks require an href otherwise can't
+ * be tabbed to, so using button
+ * in MUI Link is best compromise.
+ */
+ button.buttonLink {
+  background: transparent !important;
+  color: var(--hotlink) !important;
+  text-decoration: var(--hotlink-decoration);
+  text-transform: unset;
+  font: inherit;
+  min-height: 0px;
+  min-width: 0px;
+}
+button.buttonLink::after {
+  border: none;
+}
+button.buttonLink:hover {
+  text-decoration: var(--hotlink-hover-decoration);
+  box-shadow: none;
+}
+
+.textEmphasize {
+  color: var(--danger);
+}

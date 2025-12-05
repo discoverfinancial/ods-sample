@@ -1,0 +1,5 @@
+{
+  "exec": "ts-node src/app.ts",
+  "watch": ["src/ui/src/common", "src/*.ts", "src/controllers/*.ts", "src/etl/**", "src/ods-framework/adminSandboxFunctions.js", "src/ods-framework/**/*.ts"],
+  "ext": "ts,tsx,csx,css"
+}

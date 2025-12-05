@@ -1,0 +1,602 @@
+import { Vulnerability } from '../common/server/bom-1.6';
+import { docType, Person, AttachmentInfo, UserGroupInfo, DocumentInfo, DocumentCreate, DocumentUpdate, CommentInfo, CommentUpdate, CommentCreate, GetVersions, MostUsed, UsesLibrary } from '../common/common';
+import { Http } from '../Http'
+import { IActionMgr, IAttachmentMgr, ICommentMgr, IDocMgr, IUserGroupMgr, IServicesMgr, DocError } from './Managers';
+
+const REACT_APP_ODS_SERVER = process.env.REACT_APP_ODS_SERVER || ""
+const urlPath = `${REACT_APP_ODS_SERVER}/api/docs/${docType}/`;
+
+export { DocError } from './Managers';
+
+export class DocMgr implements IDocMgr<Document>, IUserGroupMgr, IAttachmentMgr, ICommentMgr<Document>, IServicesMgr {
+
+    http: Http = Http.getInstance();
+    private static instance: DocMgr;
+
+    constructor() { }
+
+    public static init(): DocMgr {
+        if (this.instance !== undefined) {
+            return this.instance;
+        }
+        this.instance = new DocMgr();
+        return this.instance;
+    }
+
+    public static getInstance(): DocMgr {
+        return this.init();
+    }
+
+    /**
+     * Create a blank document object.
+     * Optionally set the id
+     * 
+     * @returns {Document}
+     */
+    createBlankDocument() : DocumentInfo {
+        let doc: DocumentInfo = {
+            id: "",
+            bomFormat: "CycloneDX",
+            specVersion: "1.6",
+            state: "created",
+            dateCreated: Date.now(),
+            dateUpdated: Date.now(),
+            stateHistory: [{state: "created", date: 0, email: ""}],
+            comments: [],  
+            attachments: [],
+        };
+        return doc;
+    }
+
+    async createDocument(data?:DocumentCreate): Promise<DocumentInfo | null> {
+        try {
+            const response = await this.http.put(urlPath, data);
+            console.log("DocMgr.createDocument response=", response)
+            const body = response.data;
+            return body;
+        } catch (e: any) {
+            const err = new DocError(e);
+            console.error(err);
+            throw err;
+        }
+    }
+
+    /**
+     * Save document to peristent storage
+     * 
+     * @param document The document
+     * @param key [Optional] Only the data for the key needs to be updated (comma separated string)
+     */
+    async saveDocument(document: any, key?: string): Promise<DocumentInfo | null> {
+        if (!document || !document.id) {
+            console.log(`saveDocument() error: Document id is missing`);
+            throw new Error("DocMgr.saveDocument() - Document id missing");
+        }
+        console.log(`saveDocument(${key}) data=`, document)
+        try {
+            let data: any = {}
+            if (key) {
+                const parts = key.split(",");
+                for (var part of parts) {
+                    const i = part.trim();
+                    copyDocField(data, document, i);
+                }
+            }
+            else {
+                data = {...document};
+            }
+            const response = await this.http.patch(urlPath + encodeURIComponent(document.id), data);
+            console.log("DocMgr.saveDocument response=", response)
+            const body = response.data;
+            return body;
+        } catch (e: any) {
+            const err = new DocError(e);
+            console.error(err);
+            throw err;
+        }
+    }
+
+    isDocumentSaveable(document: any): boolean {
+        if (document.title && document.state && document.category && 
+            document.question1 && document.question2 && document.question3 && document.question4 &&
+            document.timeLimit1 && document.timeLimit2 && document.timeLimit3 && document.timeLimit4 &&
+            document.inventors.length
+            ) {
+                return true;
+            }
+        return false;
+    }
+
+    async addComment(document: any, text: string, topic?: string, _private=false, approved?: string): Promise<DocumentInfo | null> {
+        if (!document || !document.id) {
+            console.log(`addComment() error: Document id is missing`);
+            throw new Error("DocMgr.addComment() - Document id missing");
+        }
+        console.log(`addComment(${document.id}) text=${text} topic=${topic} private=${_private})`)
+        try {
+            let data:CommentCreate = {text: text, topic: topic || "", private: _private, approved: approved || ""}
+            const response = await this.http.put(urlPath + encodeURIComponent(document.id) + "/comment", data);
+            console.log("DocMgr.addComment response=", response)
+            const body = response.data;
+            return body;
+        } catch (e: any) {
+            const err = new DocError(e);
+            console.error(err);
+            throw err;
+        }
+    }
+
+    async deleteCommentForId(document: any, id: string): Promise<DocumentInfo | null> {
+        if (!document || !document.id) {
+            console.log(`deleteCommentForId() error: Document id is missing`);
+            throw new Error("DocMgr.deleteCommentForId() - Document id missing");
+        }
+        console.log(`deleteCommentForId(${document.id}) index=${id})`)
+        try {
+            const response = await this.http.delete(urlPath + encodeURIComponent(document.id) + "/comment/" + id);
+            console.log("DocMgr.deleteCommentForId response=", response)
+            const body = response.data;
+            return body;
+        } catch (e: any) {
+            const err = new DocError(e);
+            console.error(err);
+            throw err;
+        }
+    }
+
+    async updateCommentForId(document: any, id: string, data: CommentUpdate): Promise<DocumentInfo | null> {
+        if (!document || !document.id) {
+            console.log(`updateCommentForId() error: Document id is missing`);
+            throw new Error("DocMgr.updateCommentForId() - Document id missing");
+        }
+        console.log(`updateCommentForId(${document.id}) id=${id})`)
+        try {
+            const response = await this.http.patch(urlPath + encodeURIComponent(document.id) + "/comment/" + id, data);
+            console.log("DocMgr.updateComment response=", response)
+            const body = response.data;
+            return body;
+        } catch (e: any) {
+            const err = new DocError(e);
+            console.error(err);
+            throw err;
+        }
+    }
+
+    async getDocument(id: string): Promise<DocumentInfo | null> {
+        console.log(`getDocument(${id})`)
+        if (!id) {
+            console.log(`getDocument() error: Document id is missing`);
+            throw new Error("DocMgr.getDocument() - Document id missing");
+        }
+        let document:DocumentInfo;
+        try {
+            const response = await (this.http.get(urlPath + encodeURIComponent(id)))
+            console.log("DocMgr.getDocument response=", response)
+            document = response.data;
+            return document;
+        } catch (e: any) {
+            const err = new DocError(e);
+            console.error(err);
+            throw err;
+        }
+    }
+
+    async getDocumentForBomRef(bomRef: string): Promise<DocumentInfo | null> {
+        console.log(`getDocumentForBomRef(${bomRef})`)
+        if (!bomRef) {
+            console.log(`getDocumentForBomRef() error: Document bomRef is missing`);
+            throw new Error("DocMgr.getDocumentForBomRef() - Document bomRef missing");
+        }
+        try {
+            const _bomRef = JSON.parse(bomRef);
+            const match:any = {};
+            if (_bomRef.name) {
+                match["metadata.component.name"] = _bomRef.name;
+            }
+            if (_bomRef.version) {
+                match["metadata.component.version"] = _bomRef.version;
+            }
+            if (_bomRef.group) {
+                match["metadata.component.group"] =  _bomRef.group;
+            }
+            if (_bomRef.type) {
+                match["metadata.component.type"] = _bomRef.type;
+            }
+            if (_bomRef.purl) {
+                match["metadata.component.purl"] = _bomRef.purl;
+            }
+            const params = {
+                "params": {
+                    "match": match,
+                }
+            }
+            const response = await this.http.post(urlPath, params);
+            // console.log("DocMgr.getDocumentForBomRef response=", response)
+            if (response.data.items.length > 0) {
+                return response.data.items[0];
+            }
+            throw new Error("Not Found")
+        } catch (e: any) {
+            const err = new DocError(e);
+            console.error(err);
+            throw err;
+        }
+    }
+
+    async getDocuments(config?: any) : Promise<DocumentInfo[]> {
+        console.log("DocMgr.getDocuments() config=",config);
+        return new Promise(async (resolve:any, reject:any) => {
+            try {
+                await this.http.postStream(urlPath, config, undefined, function(data: any, done: boolean) {
+                    if (done) {
+                        if (data.length > 0) {
+                            console.log("DocMgr.getDocuments[0] =", data[0]);
+                        }
+                        return resolve(data);
+                    }
+                }, false);
+            } catch (e: any) {
+                const err = new DocError(e);
+                console.error(err);
+                // throw err;
+                return reject(err);
+            }
+        });
+    }
+
+    async getDocumentsStream(callback: any, config?: any) {
+        console.log("DocMgr.getDocumentsStream() config=",config);
+        try {
+            await this.http.postStream(urlPath, config, undefined, callback);
+        } catch (e: any) {
+            const err = new DocError(e);
+            console.error(err);
+            throw err;
+        }
+    }
+
+    async deleteDocument(id: string): Promise<boolean> {
+        console.log(`deleteDocument(${id})`);
+        if (!id) {
+            console.log(`deleteDocument() error: Document id is missing`);
+            throw new Error("DocMgr.deleteDocument() - Document id missing");
+        }
+        try {
+            const response = await this.http.delete(urlPath + encodeURIComponent(id));
+            console.log("DocMgr.deleteDocument response=", response)
+            return true;
+        } catch (e: any) {
+            console.error(new DocError(e));
+            return false;
+        }
+    }
+
+    async deleteDocuments(): Promise<void> {
+        console.log("DocMgr.deleteDocuments()");
+        const documents = await this.getDocuments();
+        documents.map(async (p) => {
+            await this.deleteDocument(p.id);
+        })
+    }
+
+    async deleteMany(match: any) : Promise<any> {
+        console.log("DocMgr.deleteMany() match=",match);
+        if (!match) {
+            console.log("DocMgr.deleteMany error: match is required");
+            throw new Error("DocMgr.deleteMany error: match is required");
+        }
+        try {
+            const response = await this.http.delete(urlPath + "?match=" + encodeURIComponent(JSON.stringify(match)));
+            console.log("DocMgr.deleteMany response=", response)
+            return response.data;
+        } catch (e: any) {
+            const err = new DocError(e);
+            console.error(err);
+            throw err;
+        }
+    }    
+
+    async getUserGroups(): Promise<UserGroupInfo[]> {
+        console.log("DocMgr.getUserGroups()");
+        try {
+            const response = await this.http.get(`${REACT_APP_ODS_SERVER}/api/user_groups/`);
+            console.log("DocMgr.getUserGroups response=", response)
+            return response.data.items;
+        } catch (e: any) {
+            console.error(new DocError(e));
+            return [];
+        }
+    }
+
+    async getUserGroup(name: string): Promise<UserGroupInfo> {
+        console.log(`getUserGroup(${name})`);
+        try {
+            const response = await this.http.get(`${REACT_APP_ODS_SERVER}/api/user_groups/` + name + "/");
+            console.log("DocMgr.getUserGroup response=", response)
+            //return response.data.members;
+            let members: Person[] = [];
+            for (var i = 0; i < response.data.members.length; i++) {
+                const member = response.data.members[i];
+                members.push({
+                    department: member.department,
+                    email: member.email,
+                    employeeNumber: member.employeeNumber,
+                    name: member.name,
+                    title: member.title,
+                })
+            }
+            return { id: response.data.id, deletable: response.data.deletable, members: members };
+        } catch (e: any) {
+            console.error(new DocError(e));
+            return { id: name, deletable: false, members: [] };
+        }
+    }
+
+    async setUserGroup(name: string, members: Person[]): Promise<UserGroupInfo> {
+        try {
+            const response = await this.http.patch(`${REACT_APP_ODS_SERVER}/api/user_groups/` + name, { members: members });
+            console.log("DocMgr.setUserGroup response=", response)
+            const body = response.data;
+            return body.members;
+        } catch (e: any) {
+            console.error(new DocError(e));
+            return { id: name, deletable: false, members: [] };
+        }
+    }
+
+    async createUserGroup(name: string, members: Person[]): Promise<UserGroupInfo> {
+        try {
+            const response = await this.http.put(`${REACT_APP_ODS_SERVER}/api/user_groups/`, { id: name, members: members, deletable: true });
+            console.log("DocMgr.createUserGroup response=", response)
+            const body = response.data;
+            return body.members;
+        } catch (e: any) {
+            console.error(new DocError(e));
+            return { id: name, deletable: false, members: [] };
+        }
+    }
+
+    async deleteUserGroup(name: string): Promise<boolean> {
+        console.log(`deleteUserGroup(${name})`);
+        if (!name) {
+            console.log(`deleteDocument() error: Group name is missing`);
+            throw new Error("DocMgr.deleteUserGroup() - Group name missing");
+        }
+        try {
+            const response = await this.http.delete(`${REACT_APP_ODS_SERVER}/api/user_groups/` + name);
+            console.log("DocMgr.deleteUserGroup response=", response)
+            return true;
+        } catch (e: any) {
+            console.error(new DocError(e));
+            return false;
+        }
+    }
+
+    async deleteAttachment(documentId: string, attachmentId: string): Promise<AttachmentInfo[] | null> {
+        console.log(`deleteAttachment(${documentId}, ${attachmentId})`);
+        let url = `${REACT_APP_ODS_SERVER}/api/docs/${docType}/${encodeURIComponent(documentId)}/attachments/${attachmentId}`;
+        try {
+            const response = await this.http.delete(url);
+            console.log("DocMgr.deleteAttachment response=", response)
+            const body = response.data;
+            return body;
+        } catch (e: any) {
+            console.error(new DocError(e));
+        }
+        return null;
+    }
+
+    /**
+     * Upload an attachment to a document.
+     * This saves the attachment content in database & adds attachment metadata to document.attachments
+     * 
+     * @param documentId 
+     * @param file 
+     * @returns AttachmentInfo[] The new list of attachments for the document
+     */
+    async uploadAttachment(documentId: string, file: File): Promise<AttachmentInfo[]> {
+        console.log(`uploadAttachment()`);
+        console.log("DocMgr.file=", file)
+
+        //@TODO: use localstorage during debug
+        const formData = new FormData();
+        //formData.append("documentId", documentId);
+        formData.append("file", file);
+        //await this.addAttachment({name: file.name, size: file.size, date: Date.now(), type: file.type});
+
+        let url = `${REACT_APP_ODS_SERVER}/api/docs/${docType}/${encodeURIComponent(documentId)}/attachments/`;
+        try {
+            const response = await this.http.put(url, formData, { headers: { "Content-Type": "multipart/form-data" } });
+            console.log("DocMgr.uploadAttachment response=", response)
+            const body = response.data;
+            return body;
+        } catch (e: any) {
+            console.error(new DocError(e));
+        }
+        return [];
+    }
+
+    async runAction(type: string, document: any, data: any): Promise<any | null> {
+        if (!document || !document.id) {
+            console.log(`runAction() error: Document id is missing`);
+            throw new Error("DocMgr.runAction() - Document id missing");
+        }
+        console.log(`runAction(${document.id}) data=`, data)
+        try {
+            //const response = await this.http.post("/api/action/${type}/" + document.id, data);
+            const response = await this.http.post(`${REACT_APP_ODS_SERVER}/api/action/` + type + "/" + encodeURIComponent(document.id), data);
+            console.log("DocMgr.runAction response=", response)
+            const body = response.data;
+            return body;
+        } catch (e: any) {
+            const err = new DocError(e);
+            console.error(err);
+            throw err;
+        }
+    }
+
+    async getUserProfile(email: string): Promise<any> {
+        console.log(`getProfile(${email})`);
+        let url = `${REACT_APP_ODS_SERVER}/api/profile/${email}/`;
+        try {
+            const response = await this.http.get(url);
+            console.log("DocMgr.getProfile response=", response)
+            return response.data;
+        } catch (e: any) {
+            console.error(new DocError(e));
+        }
+        return null;
+    }
+
+    async getVulnerability(data?:Vulnerability): Promise<any | null> {
+        try {
+            const response = await this.http.post(`${REACT_APP_ODS_SERVER}/api/queries/getVulnerability`, data);
+            console.log("DocMgr.getVulnerability response=", response)
+            const body = response.data;
+            return body;
+        } catch (e: any) {
+            const err = new DocError(e);
+            console.error(err);
+            throw err;
+        }
+    }
+
+    async getMostUsed(directDependency=false): Promise<MostUsed[] | null> {
+        try {
+            const response = await this.http.get(`${REACT_APP_ODS_SERVER}/api/queries/getMostUsed` + (directDependency ? "?directDependency=true" : ""));
+            console.log("DocMgr.getMostUsed response=", response)
+            const body = response.data;
+            return body;
+        } catch (e: any) {
+            const err = new DocError(e);
+            console.error(err);
+            throw err;
+        }
+    }
+
+    async getVersions(id: string): Promise<GetVersions[] | null> {
+        try {
+            const response = await this.http.get(`${REACT_APP_ODS_SERVER}/api/queries/getVersions/${encodeURIComponent(id)}`);
+            console.log("DocMgr.getVersions response=", response)
+            const body = response.data;
+            return body;
+        } catch (e: any) {
+            const err = new DocError(e);
+            console.error(err);
+            throw err;
+        }
+    }
+
+    async getSoftwareThatUsesLibrary(callback: any, library: UsesLibrary) {
+        console.log("DocMgr.getSoftwareThatUsesLibrary() library=", library);
+        try {
+            await this.http.getStream(`${REACT_APP_ODS_SERVER}/api/queries/getSoftwareThatUsesLibrary?library=` + JSON.stringify(library) , undefined, callback);
+        } catch (e: any) {
+            const err = new DocError(e);
+            console.error(err);
+            throw err;
+        }
+    }
+
+    async getGuidanceSummary(email=""): Promise<any[] | null> {
+        try {
+            const response = await this.http.get(`${REACT_APP_ODS_SERVER}/api/queries/getGuidanceSummary?email=` +  email);
+            console.log("DocMgr.getGuidanceSummary response=", response)
+            const body = response.data;
+            return body;
+        } catch (e: any) {
+            const err = new DocError(e);
+            console.error(err);
+            throw err;
+        }
+    }
+
+    async getRemoteCollectionNames(surveyorUrl:string, user: string, pw: string): Promise<string[] | null> {
+        try {
+            const response = await this.http.post(`${REACT_APP_ODS_SERVER}/api/backup/getRemoteCollectionNames`, {surveyorUrl: surveyorUrl, user: user, pass: pw});
+            console.log("DocMgr.getRemoteCollectionNames response=", response)
+            const body = response.data;
+            return body;
+        } catch (e: any) {
+            const err = new DocError(e);
+            console.error(err);
+            throw err;
+        }
+    }
+
+    async importDataFromTarget(names:string, surveyorUrl:string, user: string, pw: string, deleteCollection=false): Promise<void> {
+        try{
+            const namesArray = names.split(",")
+            const namesObjArray = [];
+            for (const name of namesArray) {
+                namesObjArray.push({name: name, match: {}, options: {}})
+            }
+            const response = await this.http.post(`${REACT_APP_ODS_SERVER}/api/backup/importCollections`, {names: namesObjArray, surveyorUrl: surveyorUrl, user: user, pass: pw, deleteCollection: deleteCollection});
+            console.log("DocMgr.importDataFromTarget response=", response.data);
+            const body = response.data;
+            return body;
+        }catch (e: any) {
+            const err = new DocError(e);
+            console.error(err);
+            throw err;
+        }
+    }
+
+    async getStatus(): Promise<any> {
+        try {
+            const response = await this.http.get(`${REACT_APP_ODS_SERVER}/api/status`);
+            // console.log("status response=", response)
+            const body = response.data;
+            return body;
+        } catch (e: any) {
+            const err = new DocError(e);
+            console.error(err);
+            throw err;
+        }
+    }
+}
+
+
+export const getDocField = (document: any, fieldName: string) => {
+    const parts = fieldName.split(".");
+    let obj = document;
+    for (let i=0; i<parts.length; i++) {
+        if (obj) {
+            obj = obj[parts[i]];
+        }
+        else {
+            return null;
+        }
+    }
+    return obj;
+}
+
+export const setDocField = (document: any, fieldName: string, value: any) => {
+    const parts = fieldName.split(".");
+    let obj = document;
+    const lenM1 = parts.length-1;
+    for (let i=0; i<lenM1; i++) {
+        let isArray = false;
+        if (!obj.hasOwnProperty([parts[i]])) {
+                if (i < lenM1 &&  parts[i+1] == "0") {
+                    obj[parts[i]] = [];
+                }
+                else {
+                    obj[parts[i]] = {};
+                }
+        }
+        obj = obj[parts[i]];
+    }
+    // if (Array.isArray(obj)) {
+    //     const key = parts[lenM1];
+    //     obj.push({[key]: value});
+    // }
+    // else {
+        obj[parts[lenM1]] = value;
+    // }
+}
+
+export const copyDocField = (dest: any, src: any, fieldName: string) => {
+    const parts = fieldName.split(".");
+    dest[parts[0]] = src[parts[0]];
+}

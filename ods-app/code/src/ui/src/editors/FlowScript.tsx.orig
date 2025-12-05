@@ -1,0 +1,213 @@
+
+
+import createWorkerBox from 'workerboxjs';
+import { AttestationMgr } from '../managers/AttestationMgr';
+import { AttestationInfo, UserContext } from '../common';
+import { useEffect, useState } from 'react';
+import { Button, MenuItem, Select, TextField } from '@mui/material';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import dayjs from 'dayjs';
+import { formatDateTime } from '../common';
+import React from 'react';
+import parse from 'html-react-parser';
+
+interface Props {
+    context: UserContext;
+    attestation: AttestationInfo;
+    setAttestation: (newAttestation: any) => void;
+    setState: (newState: string) => void;
+}
+
+const FlowScript: React.FC<Props> = ({ context, attestation, setAttestation, setState }) => {
+    const [questions, setQuestions] = useState<any>([]);
+
+    /**
+     * Run Javascript code in sandbox
+     * 
+     * @param script The javascript code to run
+     * @param projection [optional] The projection that user entered in UI
+     * @param database [optional] The database that user selected in UI
+     * @returns object
+     */
+    async function runFlowScript(script: string, attestation: AttestationInfo) {
+        console.log("RUNNING FLOW SCRIPT")
+        console.log("script=", script);
+        const _questions:any = [];
+        let _key = 1;
+
+        const { run, destroy } = await createWorkerBox(undefined);
+        const scope = {
+            attestation: attestation,
+            prompt: window.prompt,
+            showQuestion: function(key: string) {
+                const r = showQuestion(key);
+                _questions.push(<div key={"key"+(_key++)} className="spacer">{r}</div>);
+                // setQuestions(_questions);
+            },
+            getAnswer: function(key: string) {
+                return attestation.evidence?.[key]?.answer;
+            },
+            getReviewer: function(key: string) {
+                return attestation.evidence?.[key]?.reviewer;
+            },
+            getAnswerDate: function(key: string) {
+                return attestation.evidence?.[key]?.date;
+            },
+            showButton: function(label: string, callback: any) {
+                console.log("showButton called")
+                function _callback(event:any) {
+                    console.log("button clicked");
+                    if (callback) callback();
+                }
+                _questions.push(
+                    <div key={"key"+(_key++)} className="spacer">
+                        <Button 
+                            onClick={_callback}
+                            disabled={!context.editMode}
+                        >{label}
+                        </Button>
+                    </div>)
+                // setQuestions(_questions);
+            },
+            setState: function(newState: string) {
+                console.log("Setting new state to " + newState);
+                setState(newState);
+            },
+            showDiv: function(text: string, className="", style={}) {
+                _questions.push(<div key={"key"+(_key++)} className={className} style={style}>{text}</div>);
+            },
+            render: function(content: string) {
+                _questions.push(<span key={"key"+(_key++)}>{parse(content)}</span>)
+            },
+            formatDateTime: formatDateTime,
+        };
+
+        try {
+            const r = await run(script, scope);
+            setQuestions(_questions);
+            // destroy();
+            return r;
+        } catch (e) {
+            console.log("Error running script: ", e);
+            //@TODO: Need to return error to caller, so they can display it.  Maybe throw it & they catch it to display?
+        }
+    }
+
+    useEffect(() => {
+        async function run(_attestation:AttestationInfo) {
+            if (_attestation.flow) {
+                await runFlowScript(_attestation.flow, _attestation);
+            }
+        }
+        if (attestation && attestation.flow) {
+            console.log("Running script");
+            run(attestation);
+        }
+    }, [attestation])
+
+    useEffect(() => {
+        console.log("Questions changed =", questions);
+    }, [questions])
+
+    async function onEvidenceChanged(key: string, prop: "question" | "type" | "answer" | "reviewer", value: any): Promise<any> {
+        if (context.editMode) {
+            if (attestation) {
+                const _attestation = { ...attestation } as any;
+                _attestation.evidence[key][prop] = value;
+                // _attestation.evidence[key].reviewer = context.user;
+                _attestation.evidence[key].date = value ? Date.now() : 0;
+                _attestation.evidence[key].reviewer = value ? context.user : null;
+                setAttestation(_attestation);
+            }
+        }
+    }
+
+    function showQuestion(key: string) {
+        console.log("show question " + key);
+        const question = attestation.evidence?.[key];
+        console.log("question=", question);
+        if (question) {
+            if (question.type == "yn") {
+                return (
+                    <div className='detailQuestion'>
+                        <div className="spacer" style={{ paddingBottom: "1em" }}>
+                            {question.question}
+                        </div>
+                        <Select
+                            value={question.answer}
+                            sx={{ 
+                                width: "300px",
+                            }}
+                            onChange={(event) => onEvidenceChanged(key, "answer", event.target.value)}
+                            disabled={!context.editMode}
+                        >
+                            <MenuItem key={"Yes"} value={"Yes"}>
+                                Yes
+                            </MenuItem>
+                            <MenuItem key={"No"} value={"No"}>
+                                No
+                            </MenuItem>
+                        </Select>
+                    </div>
+                )
+            }
+            else if (question.type == "date") {
+                return (
+                    <div className='detailQuestion'>
+                        <div className="spacer" style={{ paddingBottom: "0.5em" }}>
+                            {question.question}
+                        </div>
+                        <LocalizationProvider dateAdapter={AdapterDayjs}>
+                            <DatePicker
+                                sx={{
+                                    width: "300px",
+                                    ".MuiInputAdornment-root": { position: "absolute", right: "18px", top: "-7px" },
+                                }}
+                                value={question.answer ? dayjs(question.answer) : null}
+                                onChange={(day) => onEvidenceChanged(key, "answer", day?.format("MM/DD/YYYY"))}
+                                disabled={!context.editMode}
+                            />
+                        </LocalizationProvider>
+                    </div>
+                )
+            }
+            else if (question.type == "confirm") {
+
+            }
+            else {
+                return (
+                    <div className='detailQuestion'>
+                        <div className="spacer" style={{ paddingBottom: "0.5em" }}>
+                            {question.question}
+                        </div>
+                        <TextField
+                            id={"no-update-justification"}
+                            value={question.answer}
+                            // multiline={true}
+                            // rows={4}
+                            onChange={(event) => onEvidenceChanged(key, "answer", event.target.value)}
+                            sx={{
+                                width: "300px",
+                                ".MuiInputBase-multiline": {
+                                    padding: "0px",
+                                }
+                            }}
+                            disabled={!context.editMode}
+                            />
+                    </div>
+                )
+            }
+        }
+    }
+
+    return (
+        <div className="editorDiv">
+            {questions}
+        </div>
+    )
+
+}
+
+export default FlowScript;
