@@ -2,7 +2,7 @@
  * Copyright (c) 2025 Capital One
 */
 
-import { assertGuard } from "@nrfcloud/ts-json-schema-transformer";
+import { assertGuard } from "typia";
 import { PostDocs, throwErr, Validate } from "ods-framework";
 import { validatePostDocs, validateGetDocs } from "ods-framework";
 import {
