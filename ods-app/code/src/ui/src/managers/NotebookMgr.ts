@@ -84,7 +84,59 @@ export class NotebookMgr {
         }
     }
 
-    
+    /**
+     * Looks up the notebook id and cell id from the notebook and cell name.
+     * 
+     * @param notebookName The name of the notebook.  If there are multiple notebooks with the same name, it returns the most recent one.
+     * @param cellNameOrNumber The cell name or number in the notebook.
+     * @returns Object {notebookId, cellId}
+     */
+    async lookupNotebookCell(notebookName: string, cellNameOrNumber: string | number): Promise<any> {
+        const q = {
+            type: "notebook",
+            name: notebookName,
+        }
+        const scriptMgr = ScriptMgr.getInstance();
+        const _scriptNotebooks = await scriptMgr.getDocuments({ params: { match: q, options: { sort: { dateUpdated: -1}}} });
+        console.log("_scriptPages=", _scriptNotebooks);
+        const nbId = _scriptNotebooks[0].id;
+        const script = JSON.parse(_scriptNotebooks[0].script);
+        console.log("script=", script);
+        for (var i = 0; i < script.cells.length; i++) {
+            const cell = script.cells[i];
+            if ("" + cellNameOrNumber === "" + i) {
+                return { notebookId: nbId, cellId: cell.id };
+            }
+            if ("" + cellNameOrNumber === cell.name) {
+                return { notebookId: nbId, cellId: cell.id };
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Gets the notebook cell data given the notebook and cell name.
+     * 
+     * @param notebookName The name of the notebook.  If there are multiple notebooks with the same name, it returns the most recent one.
+     * @param cellNameOrNumber The cell name or number in the notebook.
+     * @returns Object
+     */
+    async getNotebookCell(notebookName: string, cellNameOrNumber: string | number) : Promise<any> {
+        try {
+            const ids = await this.lookupNotebookCell(notebookName, cellNameOrNumber);
+            console.log("ids=", ids);
+            if (!ids) {
+                throw new Error("Notebook name or cell name not found");
+            }
+            const http = Http.getInstance();
+            const response = await http.get(`/api/notebook/getNotebookvar/${ids.notebookId}/cellResult_${ids.cellId}`);
+            return (response.data);
+        } catch (e) {
+            const err = new DocError(e);
+            console.error(err);
+            throw err;
+        }        
+    }
 }
 
 
