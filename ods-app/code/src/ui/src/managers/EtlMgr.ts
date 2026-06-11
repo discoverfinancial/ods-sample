@@ -83,9 +83,24 @@ export class EtlMgr {
         }
     }
     
-    async getStatus(): Promise<any> {
+    async getStatus(type=""): Promise<any> {
         try {
-            const response = await this.http.get(`${REACT_APP_ODS_SERVER}/api/service/process/status`);
+            const param = type ? `?type=${type}` : "";
+            const response = await this.http.get(`${REACT_APP_ODS_SERVER}/api/service/process/status${param}`);
+            // console.log("status response=", response)
+            const body = response.data;
+            return body;
+        } catch (e: any) {
+            const err = new DocError(e);
+            console.error(err);
+            throw err;
+        }
+    }
+
+    async getStatusAll(): Promise<any> {
+        try {
+            const response = await this.http.get(`${REACT_APP_ODS_SERVER}/api/service/process/statusAll`);
+            // console.log("status response=", response)
             const body = response.data;
             return body;
         } catch (e: any) {
