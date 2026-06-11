@@ -3,7 +3,7 @@
 */
 
 import React, { useState, useEffect } from 'react';
-import { Button, TextField, CircularProgress, Card, CardContent, Checkbox } from '@mui/material'
+import { Button, TextField, CircularProgress, Card, CardContent, Checkbox, Select, MenuItem, Divider } from '@mui/material'
 
 import { formatDateTime } from '../common';
 import { AppContext } from "../common";
@@ -13,9 +13,13 @@ import Navbar from '../navbar';
 import TopMenu from '../components/TopMenu';
 import { ScriptMgr } from '../managers/ScriptMgr';
 import NoteAddOutlinedIcon from '@mui/icons-material/NoteAddOutlined';
-import { Notebook } from './NotebookEditor';
+// import { Notebook } from './NotebookEditor';
+
+import { Notebook } from "../common";
 import { v4 as uuidv4 } from "uuid";
 import { useLocation } from 'react-router-dom';
+import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
+import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 
 let key=1;
 let importNotebooks: any[] = [];
@@ -33,6 +37,16 @@ interface Props {
 }
 
 const NotebooksListPage: React.FC<Props> = ({ context }) => {
+    const filterOptions = [
+        { value: "", label: "Grouped by Tag" },
+        { value: "all-grouped", label: "All Notebooks" },
+        { value: "mine-grouped", label: "My Notebooks" },
+        { value: "---", label: "" },
+        { value: "", label: "Not Grouped" },
+        { value: "all", label: "All Notebooks" },
+        { value: "mine", label: "My Notebooks" },
+    ];
+    const [notebookFilter, setNotebookFilter] = useState<string>(window.localStorage.getItem("notebooksFilter") || "all-grouped");
     console.log("path=", useLocation().pathname);
     let { search } = useLocation();
     const query = new URLSearchParams(search);
@@ -59,11 +73,19 @@ const NotebooksListPage: React.FC<Props> = ({ context }) => {
     const [saveNotebookPublic, setSaveNotebookPublic] = useState<any>();
     const [saveNotebookTag, setSaveNotebookTag] = useState<any>();
     const [saveNotebookDescription, setSaveNotebookDescription] = useState<any>();
+    const [saveNotebookTimeout, setSaveNotebookTimeout] = useState<any>();
 
     let _searchText = window.localStorage.getItem("listNotebooksSearchText") || ""
-    const [searchText, setSearchText] = useState<string>( _searchText);
-    let _fullTextSearch = window.localStorage.getItem("listNotebooksFullTextSearch") == "true" ? true : false;
+    const [searchText, setSearchText] = useState<string>(_searchText);
+    let _fullTextSearch = window.localStorage.getItem("listNotebooksFullTextSearch") === "true" ? true : false;
     const [fullTextSearch, setFullTextSearch] = useState<boolean>(_fullTextSearch);
+    const sortOptions = [
+        { value: "name_asc", label: (<>Name <ArrowUpwardIcon fontSize='inherit'/></>) },
+        { value: "name_desc", label:(<>Name <ArrowDownwardIcon fontSize='inherit'/></>)},
+        { value: "date_asc", label: (<>Date <ArrowUpwardIcon fontSize='inherit'/></>) },
+        { value: "date_desc", label: (<>Date <ArrowDownwardIcon fontSize='inherit'/></>) },
+    ];
+    const [sortOrder, setSortOrder] = useState<string>(window.localStorage.getItem("notebooksSortOrder") || "date_desc");
 
     useEffect(() => {
         console.log(`showSpinner="${showSpinner}"`)
@@ -79,6 +101,7 @@ const NotebooksListPage: React.FC<Props> = ({ context }) => {
         if (!initComplete) {
             init();
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
     useEffect(() => {
@@ -88,27 +111,48 @@ const NotebooksListPage: React.FC<Props> = ({ context }) => {
 
     useEffect(() => {
         setShowSpinner("");
-    }, [initComplete])  // eslint-disable-line react-hooks/exhaustive-deps
+    }, [initComplete])  
 
     const loadScriptNotebooks = async() => {
         const q:any = { type: type };
+        if (notebookFilter.includes("mine")) {
+            q["$or"] = [
+                {"owner.email": user.email},
+                {"edited.email": user.email},
+                {"editors.email": user.email},
+            ]
+        }
         if (searchText && searchText.length > 0) {
             q["$or"] = [
                 {name: { $regex: searchText, $options: "i" }},
                 {description: { $regex: searchText, $options: "i" }},
                 {"owner.name": { $regex: searchText, $options: "i" }},
+                {"edited.name": { $regex: searchText, $options: "i" }},
+                {"editors.name": { $regex: searchText, $options: "i" }},
                 {tag: { $regex: searchText, $options: "i" }}, 
             ]
             if (fullTextSearch) {
                 q["$or"].push({script: { $regex: searchText, $options: "i" }});
             }
         }
-        const _scriptNotebooks = await scriptMgr.getDocuments({params: { match: q, options: {projection: {script:0}, sort:{tag:1, name:1}}}}) as any[];
+        const sort:any = {};
+        if (sortOrder === "name_asc") {
+            sort["name"] = 1;
+        } else if (sortOrder === "name_desc") {
+            sort["name"] = -1;
+        } else if (sortOrder === "date_asc") {
+            sort["dateUpdated"] = 1;
+        } else {
+            sort["dateUpdated"] = -1;
+        }
+        const _scriptNotebooks = await scriptMgr.getDocuments({params: { match: q, options: {projection: {script:0}, sort:sort}}}) as any[];
         console.log("_scriptPages=", _scriptNotebooks);
         setScriptNotebookList(_scriptNotebooks);
 
         const groups:any = {};
         function addToGroup(group: string, script: any) {
+            if (!notebookFilter.includes("grouped")) { group = "All Groups" }
+            console.log("Adding notebook ", script.name, " to group ", group, " notebookFilter=", notebookFilter);
             if (!groups[group]) {
                 groups[group] = [];
             }
@@ -116,7 +160,7 @@ const NotebooksListPage: React.FC<Props> = ({ context }) => {
         }
 
         for (const _doc of _scriptNotebooks) {
-            if (_doc.owner?.email == user.email) {
+            if (_doc.owner?.email === user.email) {
                 if (_doc.tag) {
                     if (_doc.tag.startsWith(":")) {
                         addToGroup(_doc.tag.substring(1), _doc);
@@ -150,15 +194,24 @@ const NotebooksListPage: React.FC<Props> = ({ context }) => {
         console.log("Search pressed: search value =", searchText);
         window.localStorage.setItem("listNotebooksSearchText", searchText);
         window.localStorage.setItem("listNotebooksFullTextSearch", fullTextSearch ? "true" : "false");
-        await loadScriptNotebooks();        
+        window.localStorage.setItem("notebooksSortOrder", sortOrder);
+        window.localStorage.setItem("notebooksFilter", notebookFilter);
+        await loadScriptNotebooks();
     }
 
+    useEffect(() => {
+        console.log("order changed: ", sortOrder, initComplete);
+        if (initComplete) {
+            loadScriptNotebooks();
+        }
+    }, [sortOrder, initComplete, notebookFilter])
 
     const saveNotebook = async (update: string) => {
         setSaveNotebookName("");
         setSaveNotebookDescription("");
         setSaveNotebookPublic(false);
         setSaveNotebookTag("");
+        setSaveNotebookTimeout("");
 
         setShowDialog({
             title: "Create New Notebook",
@@ -219,6 +272,21 @@ const NotebooksListPage: React.FC<Props> = ({ context }) => {
                     />
                 </div>
 
+                <div className="spacer">
+                    <b>Timeout (in seconds) [optional]: </b>
+                </div>
+                <div style={{ paddingLeft: "16px" }}>
+                    <TextField
+                        defaultValue={""}
+                        onChange={(event) => setSaveNotebookTimeout(event.target.value)}
+                        fullWidth
+                        sx={{
+                            width: "400px",
+                        }}
+                    />
+                </div>
+
+
             </div>),
         });
     }
@@ -244,9 +312,9 @@ const NotebooksListPage: React.FC<Props> = ({ context }) => {
                         cells: [
                             {name: "", type:"code", data:`// Add your first code block here
 const r = getSboms({params: {match: {"metadata.component.name": {$regex: "^spring-boot$"}}}});
-setResult(r);`, id:uuidv4(), view:["sbom"], parameters:{}},
-                            {name: "", type:"text", data:"// Add your first text block here", id:uuidv4(), view:["editor","preview"], parameters:{}},
-                            {name: "", type:"code", data:"// Add your second code block here\nsetResult('Hello World');", id:uuidv4(), view:["raw"], parameters:{}},
+setResult(r);`, id:uuidv4(), view:["sbom"], viewEditor: "", parameters:{}},
+                            {name: "", type:"text", data:"// Add your first text block here", id:uuidv4(), view:["editor","preview"], viewEditor:"", parameters:{}},
+                            {name: "", type:"code", data:"// Add your second code block here\nsetResult('Hello World');", id:uuidv4(), view:["raw"], viewEditor:"", parameters:{}},
                         ]
                     }
                     // console.log("_newNotebook=", _notebook)
@@ -260,6 +328,7 @@ setResult(r);`, id:uuidv4(), view:["sbom"], parameters:{}},
                         // parameters: parameters,
                         description: saveNotebookDescription,
                         tag: saveNotebookTag,
+                        timeout: saveNotebookTimeout,
                     })
 
 
@@ -299,6 +368,17 @@ setResult(r);`, id:uuidv4(), view:["sbom"], parameters:{}},
             console.log("scriptNotebooks changed")
             const r = [];
             for (const group of Object.keys(scriptNotebooks).sort()) {
+            // for (const group of Object.keys(scriptPages).sort((a:any, b:any) => {
+            //     if (a.startsWith("My Pages") && !b.startsWith("My Pages")) {
+            //         return -1;
+            //     }
+            //     if (!a.startsWith("My Pages") && b.startsWith("My Pages")) {
+            //         return 1;
+            //     }
+            //     if (a < b) return -1;
+            //     if (a > b) return 1;
+            //     return 0;
+            // })) {
                 r.push(
                     <h3 key={`r_${(key++)}`}>{group}</h3>
                 )
@@ -320,7 +400,10 @@ setResult(r);`, id:uuidv4(), view:["sbom"], parameters:{}},
                                         <div>Author: {notebook.owner.name}</div>
                                         <div>{formatDateTime(notebook.dateUpdated)}</div>
                                     </div>
+                                    {notebook.edited && <div>Edited: {notebook.edited?.map((editor:any) => editor.name).join(", ")}</div>}
                                     <div className="spacer" style={{display: "flex", justifyContent: "space-between", alignItems:"center"}}>
+                                        {/* <div>Created: {formatDateTime(page.dateCreated)}</div> */}
+                                        {/* <div>{formatDateTime(page.dateUpdated)}</div> */}
                                         <div></div>
                                         <Button size="small" variant="outlined" onClick={(event) => {
                                             console.log("Edit card: ", notebook.id);
@@ -330,11 +413,21 @@ setResult(r);`, id:uuidv4(), view:["sbom"], parameters:{}},
                                     </div>
                                 </div>
                             </CardContent>
+                            {/* <CardActions style={{display: "flex", justifyContent: "flex-between"}}>
+                                <div>Created: {formatDateTime(page.dateCreated)}</div>
+                                <div>Updated: {formatDateTime(page.dateUpdated)}</div>
+                                <Button size="small" variant="outlined">Edit</Button>
+                            </CardActions>                             */}
                         </Card>
                     );
                 }
                 r.push(<div key={`r_${(key++)}`} style={{display: "flex", gap:"20px", flexWrap: "wrap"}}>{p}</div>)
             }
+            // r.push(
+            //     <code key={`r_${(key++)}`}><pre>
+            //         {JSON.stringify(scriptPages, null, 4)}
+            //     </pre></code>
+            // )
             setContent(<div className="pages" key={`r_${(key++)}`}>{r}</div>)
         }
     }, [scriptNotebooks])
@@ -446,7 +539,7 @@ setResult(r);`, id:uuidv4(), view:["sbom"], parameters:{}},
         const el = document.getElementById("importFileNamesDiv");
         if (el) {
             const r = [];
-            if (importNotebooks.length == 0) {
+            if (importNotebooks.length === 0) {
                 r.push("<div>No notebooks selected</div>");
             }
             else {
@@ -469,7 +562,7 @@ setResult(r);`, id:uuidv4(), view:["sbom"], parameters:{}},
      * @returns 
      */
     async function handleImportButton() {
-        if (!importNotebooks || importNotebooks.length == 0) {
+        if (!importNotebooks || importNotebooks.length === 0) {
             console.log("No import data specified");
             return;
         }
@@ -607,6 +700,7 @@ setResult(r);`, id:uuidv4(), view:["sbom"], parameters:{}},
                                     description: notebook.description,
                                     tag: notebook.tag,
                                     script: notebook.script,
+                                    timeout: notebook.timeout,
                                 };
                                 downloadNotebook(exportData);
                             }
@@ -719,7 +813,7 @@ setResult(r);`, id:uuidv4(), view:["sbom"], parameters:{}},
                                 return;
                             }
                             console.log("Deleting notebook: ", id)
-                            const q = await scriptMgr.deleteDocument(id);
+                            await scriptMgr.deleteDocument(id);
                         }
                         await loadScriptNotebooks();
                         return (setShowDialog(null))
@@ -812,7 +906,7 @@ setResult(r);`, id:uuidv4(), view:["sbom"], parameters:{}},
                     <div className="spacer"/>
 
                     <div className="detailDiv">
-                        <div style={{display:"flex", gap:"20px", alignItems:"center"}}>
+                        <div style={{display:"flex", gap:"14px", alignItems:"center"}}>
                             <div style={{marginTop:"8px"}}>Search for Notebooks:</div>
                             <TextField
                                 id={"sbom_search"}
@@ -829,7 +923,7 @@ setResult(r);`, id:uuidv4(), view:["sbom"], parameters:{}},
                                     },
                                 }}
                             />
-                            <div style={{marginRight:"20px"}}>
+                            <div style={{marginRight:"14px"}}>
                                 <Checkbox
                                     checked={fullTextSearch}
                                     onChange={(event, value) => {
@@ -839,7 +933,49 @@ setResult(r);`, id:uuidv4(), view:["sbom"], parameters:{}},
                                 />
                                 <span>Full Text Search</span>
                             </div>
-
+                            <div style={{marginRight:"14px"}}>
+                                <span>Filter:</span>
+                                <Select
+                                    // native
+                                    value={notebookFilter}
+                                    onChange={(e) => {
+                                        setNotebookFilter(e.target.value);
+                                        window.localStorage.setItem("notebooksFilter", e.target.value);
+                                    }}
+                                    style={{ marginLeft: "8px"}}
+                                >
+                                    {filterOptions.map((option) => {
+                                        if (option.value === "") {
+                                            return(<MenuItem key={option.value} value={option.value} 
+                                                disabled >
+                                                <div style={{color: "blue"}}>{option.label}</div>
+                                            </MenuItem>)
+                                        } else if (option.value === "---") {
+                                            return (<Divider key={option.value} sx={{backgroundColor: "lightGray"}} />)
+                                        } else {
+                                            return (<MenuItem key={option.value} value={option.value}
+                                            >{option.label}</MenuItem>)
+                                        }
+                                    }
+                                    )}
+                                </Select>
+                            </div>
+                            <div style={{marginRight:"20px"}}>
+                                <span>Sort:</span>
+                                <Select
+                                    // native
+                                    value={sortOrder}
+                                    onChange={(e) => {
+                                        setSortOrder(e.target.value);
+                                        window.localStorage.setItem("notebooksSortOrder", e.target.value);
+                                    }}
+                                    style={{ marginLeft: "8px" }}
+                                >
+                                    {sortOptions.map((option) => (
+                                        <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
+                                    ))}
+                                </Select>
+                            </div>
                             <div>
                                 <Button
                                     onClick={handleSearchButton}
