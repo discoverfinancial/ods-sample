@@ -377,6 +377,9 @@ const EndoflifeDataGrid: React.FC<Props> = ({title, requests, states, handleEdit
             })
         }
         if (requests) {
+            if (!Array.isArray(requests)) {
+                throw new Error("Cannot display in Table since data is not an array.");
+            }
             gridRef.current!.api.setGridOption('rowData', requests);
         }
         setGridReady(true)
@@ -462,6 +465,9 @@ const EndoflifeDataGrid: React.FC<Props> = ({title, requests, states, handleEdit
         console.log("EndoflifeDataGrid data changed: ", requests ? requests.length : requests);
         if (gridRef.current && gridRef.current.api) {
             const el = document.activeElement?.querySelector('input[data-ref="eInput"]')
+            if (!Array.isArray(requests)) {
+                throw new Error("Cannot display in Table since data is not an array.");
+            }
             gridRef.current!.api.setGridOption('rowData', requests);
             if (el) {
                 (el as any).focus();
