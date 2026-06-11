@@ -483,6 +483,9 @@ const SbomDataGrid: React.FC<Props> = ({ title, requests, states, handleEditRow,
             })
         }
         if (requests) {
+            if (!Array.isArray(requests)) {
+                throw new Error("Cannot display in Table since data is not an array.");
+            }
             gridRef.current!.api.setGridOption('rowData', requests);
         }
         setGridReady(true);
