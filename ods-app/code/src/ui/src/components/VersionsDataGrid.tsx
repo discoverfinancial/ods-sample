@@ -66,6 +66,8 @@ interface Props {
     guidance?: any;
 }
 
+let guidanceObj:any = null;
+
 const VersionsDataGrid: React.FC<Props> = ({
     title, 
     data, 
@@ -82,7 +84,9 @@ const VersionsDataGrid: React.FC<Props> = ({
 
     const gridRef = useRef<AgGridReact>(null);
     const numRowsRef = useRef<HTMLDivElement>(null);
-    const [guidanceObj, setGuidanceObj] = useState<any>();
+    function setGuidanceObj(obj:any) {
+        guidanceObj = obj;
+    }
 
     const radioButtonSelected = settings ? settings.displayColumns : displayColumns;
 
@@ -235,7 +239,7 @@ const VersionsDataGrid: React.FC<Props> = ({
             },
 
             {
-                field: "version",
+                field: "guidance",
                 headerName: "In Guidance",
                 headerTooltip: "Indicates whether version of library falls within guidance",
                 cellClass: "center-text",
@@ -536,7 +540,7 @@ const VersionsDataGrid: React.FC<Props> = ({
                         defaultColDef={defaultColDef}
                         columnDefs={columnDefs}
                         gridOptions={gridOptions}
-                        rowData={data}
+                        rowData={Array.isArray(data) ? data :[]}
                         suppressCellFocus={true}
                         onGridReady={onGridReady}
                         onColumnResized={onColumnResized}
