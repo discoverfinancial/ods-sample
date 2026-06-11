@@ -12,9 +12,10 @@ interface Props {
    label: string;
    handleAdd(value: string): void;
    disabled?: boolean;
+   style?: any;
 }
 
-const AddPerson: React.FC<Props> = ({label, handleAdd, disabled}) => {
+const AddPerson: React.FC<Props> = ({label, handleAdd, disabled, style}) => {
     const [input, setInput] = useState<string>("");
 
     if (disabled) {
@@ -28,6 +29,7 @@ const AddPerson: React.FC<Props> = ({label, handleAdd, disabled}) => {
                 className="text" 
                 type="input" 
                 disabled={disabled}
+                style={style}
                 label={label} 
                 value={input} 
                 onChange={(e:any)=>setInput(e.target.value)}
