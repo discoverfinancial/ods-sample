@@ -2,7 +2,10 @@
  * Copyright (c) 2025 Capital One
 */
 
-import React, { useState, useEffect, useRef } from 'react';
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable jsx-a11y/anchor-is-valid */
+
+import React, { useState, useEffect } from 'react';
 import {
     Button,
     Checkbox,
@@ -15,7 +18,7 @@ import {
     Tooltip
 } from '@mui/material'
 
-import { AppContext } from "../common";
+import { AppContext, formatDateTime } from "../common";
 import CodeMirror from '@uiw/react-codemirror';
 import { javascript } from '@codemirror/lang-javascript';
 import { markdown } from "@codemirror/lang-markdown"
@@ -34,7 +37,7 @@ import PreviewOutlinedIcon from '@mui/icons-material/PreviewOutlined';
 import DeleteForeverOutlinedIcon from '@mui/icons-material/DeleteForeverOutlined';
 import UploadFileOutlinedIcon from '@mui/icons-material/UploadFileOutlined';
 import SimCardDownloadOutlinedIcon from '@mui/icons-material/SimCardDownloadOutlined';
-import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined';
+// import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined';
 
 import SbomDataGrid from '../components/SbomDataGrid';
 import JsonDataGrid from '../components/JsonDataGrid';
@@ -42,6 +45,7 @@ import { Notebook, NotebookCell } from './NotebookEditor';
 import MostUsedDataGrid from '../components/MostUsedDataGrid';
 import LibrariesDataGrid from '../components/LibrariesDataGrid';
 import VersionsDataGrid from '../components/VersionsDataGrid';
+import { GuidanceMgr } from '../managers/GuidanceMgr';
 import './NotebookEditorCell.css';
 
 import { setErrorHandler } from '../App';
@@ -96,7 +100,10 @@ let timeOutId:any;
 interface Props {
     context: AppContext;
     setShowSpinner?: any;
+    isCancelPressed: boolean;
+    setIsCancelPressed: any;
     notebookId: string;
+    notebookName: string;
     notebook: Notebook;
     cellChanged(index: number, refresh?: boolean): any;
     cellIds: string[];
@@ -109,12 +116,18 @@ interface Props {
     presentationMode?: boolean;
     updateEnabled: boolean;
     updateNotebook: any;
+    timeout: string;
 }
 
-let cellAlreadyRun = false;
+// let cellAlreadyRun = false;
 
-const NotebookEditorCell: React.FC<Props> = ({ context, setShowSpinner, 
+const NotebookEditorCell: React.FC<Props> = ({ 
+    context, 
+    setShowSpinner, 
+    isCancelPressed,
+    setIsCancelPressed,
     notebookId, 
+    notebookName,
     notebook,
     cellChanged,
     cellIds,
@@ -126,6 +139,7 @@ const NotebookEditorCell: React.FC<Props> = ({ context, setShowSpinner,
     presentationMode,
     updateEnabled,
     updateNotebook,
+    timeout,
  }) => {
     const scriptMgr = ScriptMgr.getInstance();
     const notebookMgr = NotebookMgr.getInstance();
@@ -133,19 +147,19 @@ const NotebookEditorCell: React.FC<Props> = ({ context, setShowSpinner,
     const [cellResults, setCellResults] = useState<any>();
     const [cellData, setCellData] = useState<string>(); // used only for jsx cell type
 
-    const [initComplete, setInitComplete] = useState<boolean>(false);
+    // const [initComplete, setInitComplete] = useState<boolean>(false);
 
     const _setCellData = (data: string, runCell=false) => {
         console.log("$$$$ _setCellData()")
         try {
-            cellAlreadyRun = false;
+            // cellAlreadyRun = false;
             setCellData(
                 `(props) => {
                     const {setVar, getVar, getCellResult, runNotebookCell: runCell, 
                     useEffect, useState, useRef,
                     mui, mgr,
                     SbomDataGrid, JsonDataGrid, MostUsedDataGrid, LibrariesDataGrid, VersionsDataGrid, AgGridReact,
-                    d3, recharts,
+                    d3, recharts, xcharts
                     } = props;
                     ${data}
                 }`
@@ -156,11 +170,18 @@ const NotebookEditorCell: React.FC<Props> = ({ context, setShowSpinner,
     }
 
     useEffect(() => {
-        if (cell.type == "jsx") {
+        if (cell.type === "jsx") {
             if (cellResults) {
             }
         }
     }, [cellResults])
+    
+    useEffect(() => {
+        if (isCancelPressed) {
+            scriptMgr.stopScript();
+            setIsCancelPressed(false);
+        };
+    }, [isCancelPressed]);
 
     const jsxErrorHandler = (err: any) => {
         console.log("@@@ jsxErrorHandler()")
@@ -169,6 +190,7 @@ const NotebookEditorCell: React.FC<Props> = ({ context, setShowSpinner,
         if (i > -1) {
             msg = msg.substring(i+6).trim();
         }
+        // setCellResults(msg)
         return msg;
     }
 
@@ -231,10 +253,11 @@ const NotebookEditorCell: React.FC<Props> = ({ context, setShowSpinner,
     const runCell = async (cellIds: string[]) => {
         console.log(`runCell(${index})`);
         if (!updateEnabled) { return }
+        cell.lastRunStart = Date.now();
         await updateNotebook();
-        if (cell.type == "code" || cell.type == "searchSoftware") {
+        if (cell.type === "code" || cell.type === "searchSoftware") {
 
-            if (cell.type == "searchSoftware") {
+            if (cell.type === "searchSoftware") {
                 let searchType = [];
                 if (cell.parameters.searchProducts) searchType.push("Product");
                 if (cell.parameters.searchSystems) searchType.push("Application");
@@ -246,7 +269,7 @@ const NotebookEditorCell: React.FC<Props> = ({ context, setShowSpinner,
 
                 cell.data =
 `
-const r = searchSboms("${cell.parameters.searchText}", "", ${JSON.stringify(searchType)});
+const r = searchSboms(\`${cell.parameters.searchText}\`, "", ${JSON.stringify(searchType)});
 setResult(r);
 `
             }
@@ -254,10 +277,33 @@ setResult(r);
             console.log("Running cell");
             console.log("notebookId =", notebookId);
             setShowSpinner(`Running cell ${index}...`)
+            setIsCancelPressed(false);
             try {
+                const includeCellIdMatch = Array.from((cell.data).matchAll(/^\s?includeCell\((.*)\)/gm));
+                console.log("includeCellIdMatch=", includeCellIdMatch);
+                const includeCellId = includeCellIdMatch.map((match) => {return match[1]});
+                console.log("includeCellId=", includeCellId);
+                const includeCell = [];
+                const cells = [];
+                for (let i=0; i<notebook.cells.length; i++) {
+                    const cell = notebook.cells[i];
+                    cells.push({i: i, id: cell.id, name: cell.name, type: cell.type, parameters: cell.parameters});
+                    for (const id of includeCellId || []) {
+                        if (""+i === id || `"${cell.id}"` === id || `"${cell.name}"` === id) {
+                            includeCell.push(cell.data);
+                        }
+                    }
+                }
+                console.log("includedCell=", includeCell);
+                console.log("timeout=", timeout, "type=", typeof timeout,  "in ms=", (parseInt(timeout || "10") * 1000));
                 const r = await scriptMgr.runScript({
+                    timeout: parseInt(timeout || "600") * 1000, // 10 minutes
                     script:
                         `
+${includeCell.join("\n")}                        
+const notebookId = "${notebookId}";
+const cells = ${JSON.stringify(cells)};
+function includeCell(index) {}
 function getVars(name, value) {
     return getNotebookVars("${notebookId}");
 }
@@ -298,6 +344,19 @@ function getCellResult(index) {
         return getNotebookVar("${notebookId}", "cellResult_"+id);
     }
 }
+function getCellResultName(index) {
+    let id = ${JSON.stringify(cellIds)}[index];
+    if (!id) {
+        id = ${JSON.stringify(cellNames)}[index];
+    }
+    if (id) {
+        return "cellResult_"+id;
+    }
+}
+function saveExcelNotebook(data, name) {
+    const r = saveExcelNotebookId(data, "${notebookId}", (name || "${notebookName}") + ".xlsx");
+    return r;
+}
 
 async function run() {
 ${cell.data.replaceAll("setResult(", "_setResult(")}
@@ -325,7 +384,7 @@ if (r) {
             _setCellData(cell.data);
         }
 
-        if (cell.type == "text") {
+        if (cell.type === "text") {
 
             console.log("Running cell");
             console.log("notebookId =", notebookId);
@@ -403,6 +462,7 @@ function renderMarkdown(mdText){
         //mdText = mdText.substring(0,match[2]) + s + mdText.substring(match[3]);
         result += mdText.substring( (j==0) ? 0 : matches[j-1][3], match[2]) + s;
     }
+    result += mdText.substring( (matches.length > 0) ? matches[matches.length-1][3] : 0 );
     return result;
 }
 
@@ -491,6 +551,9 @@ if (r) {
         else {
             console.log("Not a code cell, so not running")
         }
+        cell.lastRunDone = Date.now();
+        await updateNotebook();
+
     }
 
     /**
@@ -519,9 +582,9 @@ if (r) {
             cell.run = runCell;
             getCellResults();
             console.log(">>VIEW=", cell.view);
-            if (cell.type == "searchSoftware") {
+            if (cell.type === "searchSoftware") {
             }
-            else if (cell.type == "jsx") {
+            else if (cell.type === "jsx") {
                 setErrorHandler(jsxErrorHandler);
                 _setCellData(cell.data);
             }
@@ -603,6 +666,16 @@ if (r) {
     }
 
     /**
+     * Toggle code editor view of code cell
+     * 
+     * @param showHide 
+     */
+    const toggleShowEditor = (showHide: string) => {
+        cell.viewEditor = showHide;
+        cellChanged(index, true);
+    }
+
+    /**
      * Delete cell results and variable on server
      * 
      * @param index The cell index
@@ -617,11 +690,21 @@ if (r) {
             const r = await notebookMgr.processDelete(`deleteNotebookvar/${notebookId}/cellResult_${cellId}`)
             console.log("cell Results =", r);
             setCellResults(undefined);
+            cell.lastRunStart = null;
+            cell.lastRunDone = null;
+            await updateNotebook();
         }
         catch (e) {
             setShowSpinner("")
             throw (e);
         }
+    }
+
+    /**
+     * Copy cell results to clipboard
+     */
+    const copyToClipboard = async () => {
+        navigator.clipboard.writeText(JSON.stringify(cellResults,null,4));
     }
 
     /**
@@ -639,12 +722,41 @@ if (r) {
             const r = await notebookMgr.processDelete(`deleteNotebookvar/${notebookId}/cellResult_${cellId}`)
             console.log("cell Results =", r);
             setCellResults(undefined);
+            cell.lastRunStart = null;
+            cell.lastRunDone = null;
+            await updateNotebook();
         }
         catch (e) {
             setShowSpinner("")
             throw (e);
         }
     }
+
+    /**
+     * Get guidance for Versions Table
+     * 
+     * @param basePurl 
+     * @returns 
+     */
+    const getGuidance = async (basePurl: string) => {
+        console.log(`getGuidance(${basePurl})`);
+        let _guidance = null;
+        try {
+            _guidance = await GuidanceMgr.getInstance().getDocumentForItem(basePurl);
+        } catch (e: any) {
+            if (e.status === 404) {
+                console.log("Guidance not found")
+            }
+            else {
+                console.log("Error getting guidance: ", e);
+            }
+        }
+        console.log("guidance=", _guidance);
+        const _versionDocs = cellResults;
+        console.log("versionDocs=", _versionDocs);
+        return _guidance
+    }
+
 
 
     /**
@@ -689,45 +801,61 @@ if (r) {
                 </Select>
                 <div></div>
                 <div></div>
-                {cell.type != "text" && !hasResults &&
+                {cell.type !== "text" && !hasResults &&
                     <Tooltip title={"Run Code Cell"} placement="bottom-start" enterDelay={500}>
                         <span className="notebookEditorTooltip">
                             <PlayCircleFilledWhiteOutlinedIcon className={iconClassName} onClick={() => { runCell(cellIds) }}/></span>
                     </Tooltip>
                 }
-                {cell.type != "text" && hasResults &&
+                {cell.type !== "text" && hasResults &&
                     <Tooltip title={"Rerun Code"} placement="bottom-start" enterDelay={500}>
                         <span className="notebookEditorTooltip">
                         <ReplayOutlinedIcon className={iconClassName} onClick={() => { runCell(cellIds) }} /></span>
                     </Tooltip>
                 }
 
-                {cell.type == "text" && !hasResults &&
+                {cell.type === "text" && !hasResults &&
                     <Tooltip title={"Save Text & All Other Notebook Changes"} placement="bottom-start" enterDelay={500}>
                         <span className="notebookEditorTooltip">
                         {/* <SaveOutlinedIcon className={iconClassName} onClick={() => { updateNotebook() }} /></span> */}
                         <PlayCircleFilledWhiteOutlinedIcon className={iconClassName} onClick={() => { runCell(cellIds) }}/></span>
                     </Tooltip>
                 }
-                {cell.type == "text" && hasResults &&
+                {cell.type === "text" && hasResults &&
                     <Tooltip title={"Rerun Code"} placement="bottom-start" enterDelay={500}>
                         <span className="notebookEditorTooltip">
                         <ReplayOutlinedIcon className={iconClassName} onClick={() => { runCell(cellIds) }} /></span>
                     </Tooltip>
                 }
 
-                {(cell.type == "text" || cell.type == "jsx") &&
+                {(cell.type === "text" || cell.type === "jsx") &&
                     <Tooltip title={"Show/Hide Editor"} placement="bottom-start" enterDelay={500}>
                         <span className="notebookEditorTooltip">
                         <EditNoteOutlinedIcon className={iconClassName} onClick={() => { toggleShow( "editor") }} /></span>
                     </Tooltip>
                 }
-                {cell.type == "text" &&
+                {(cell.type === "text") &&
                     <Tooltip title={"Show/Hide Preview"} placement="bottom-start" enterDelay={500}>
                         <span className="notebookEditorTooltip">
                         <PreviewOutlinedIcon className={iconClassName} onClick={() => { toggleShow( "preview") }} /></span>
                     </Tooltip>
                 }
+
+                {(cell.type === "code" && (cell.viewEditor !== "hide" || !cell.viewEditor)) &&
+                    <Tooltip title={"Hide Editor"} placement="bottom-start" enterDelay={500}>
+                        <span className="notebookEditorTooltip">
+                        <EditNoteOutlinedIcon className={iconClassName} onClick={() => { toggleShowEditor( "hide") }} /></span>
+                    </Tooltip>
+                }
+                {(cell.type === "code" && cell.viewEditor === "hide") &&
+                    <Tooltip title={"Show Editor"} placement="bottom-start" enterDelay={500}>
+                        <span className="notebookEditorTooltip">
+                        <PreviewOutlinedIcon className={iconClassName} onClick={() => { toggleShowEditor( "show") }} /></span>
+                    </Tooltip>
+                }
+
+
+                
 
                 <Tooltip title={"Move Cell Up"} placement="bottom-start" enterDelay={500}>
                 <span className="notebookEditorTooltip">
@@ -757,10 +885,10 @@ if (r) {
 
             </div>
 
-            {(cell.type == "code" || cell.type == "searchSoftware") && <>
+            {(cell.type === "code" || cell.type === "searchSoftware") && <>
 
                 {!presentationMode && <>
-                {(cell.type == "code") && <CodeMirror
+                {(cell.type === "code" && cell.viewEditor !== "hide") && <CodeMirror
                     value={cell.data}
                     style={{ border: "1px solid gray", borderRadius: "4px", maxHeight: "50vh", overflow:"auto" }}
                     extensions={[javascript({ jsx: true })]}
@@ -776,7 +904,7 @@ if (r) {
                     }}
                 />}
 
-                {(cell.type == "searchSoftware") && <div style={{display:"flex", gap:"20px", alignItems:"center"}}>
+                {(cell.type === "searchSoftware") && <div style={{display:"flex", gap:"20px", alignItems:"center"}}>
                     <div  style={{}}>Search for Software<br/>(use * for partial match)</div>
                     <TextField
                         value={cell.parameters.searchText}
@@ -847,8 +975,28 @@ if (r) {
                             <MenuItem value={"mostused"}>Top-Level Dependencies Table</MenuItem>
                             <MenuItem value={"libraries"}>Libraries Table</MenuItem>
                             <MenuItem value={"versions"}>Versions Table</MenuItem>
+                            <MenuItem value={"html"}>HTML</MenuItem>
                         </Select>
                         {updateEnabled && <a onClick={() => deleteResults()} style={{ paddingLeft: "20px", paddingRight: "20px" }}>Delete Results</a>}
+                        {/* <Tooltip title={"Delete Results"} placement="bottom-start" enterDelay={500}>
+                        <span style={{ overflow: "hidden", whiteSpace: "nowrap", textOverflow: 'ellipsis' }}><HighlightOffOutlinedIcon onClick={() => {deleteResults(index)}}/></span>
+                    </Tooltip> */}
+                    </div>
+                    {/* <div style={{ marginLeft: "auto" }}>
+                        <a onClick={() => {
+                            console.log("notebook=", notebook);
+                            const r = (notebook.cells[0].ref as any).current.test();
+                            console.log("r=", r);
+                            // alert("r="+ JSON.stringify((cell as any).ref.current) );
+                        }} style={{ paddingLeft: "20px", paddingRight: "20px" }}>Call child</a>
+                    </div> */}
+
+                    <div style={{ marginLeft: "auto", display:"flex", gap:"40px" }}>
+                        <div>
+                            {cell.lastRunStart && <span>Run at: {formatDateTime(cell.lastRunStart)}</span>}
+                            {cell.lastRunDone && cell.lastRunStart && (cell.lastRunDone > cell.lastRunStart) && <span> for {Math.round((cell.lastRunDone-cell.lastRunStart)/1000)} sec</span>}
+                        </div>
+                        <a onClick={() => copyToClipboard()} style={{ paddingLeft: "20px", paddingRight: "20px" }}>Copy Results to Clipboard</a>
                     </div>
                 </div>
 
@@ -877,6 +1025,7 @@ if (r) {
 
                     {hasResults && !error && <div style={{}}>
                         {Array.isArray(cellResults) && (cell.view?.includes("sbom")) && <SbomDataGrid
+                            ref={(cell as any).ref}
                             title="Documents"
                             requests={cellResults}
                             handleEditRow={async (event) => {
@@ -892,7 +1041,15 @@ if (r) {
                                     window.open("/versions/" + encodeURIComponent(JSON.stringify(data)), "_blank")?.focus();
                                 }
                             }}
-			    
+
+                            handleShowGuidance={async (data) => {
+                                if (typeof data == "string") {
+                                    window.open("/guidance/" + encodeURIComponent(data), "_blank")?.focus();
+                                }
+                                else {
+                                    window.open("/guidance/" + encodeURIComponent(JSON.stringify(data)), "_blank")?.focus();
+                                }
+                            }}
                             isAdmin={context.isAdministrator}
                             displayColumns={cell.columns}
                             setDisplayColumns={async (data) => {
@@ -946,8 +1103,13 @@ if (r) {
                             handleViewClicked={async (event) => {}}
                             handleUsedByClicked={async (event) => {}}
                             isAdmin={context.isAdministrator}
-                            style={{ height: `calc(100vh - ${document.getElementById("topMostUsedDataGrid")?.offsetTop}px - 250px)`, minHeight: "600px", paddingBottom: "20px" }}
+                            style={{ 
+                                height: `calc(100vh - {gridTop}px - 20px)`, 
+                                minHeight: "600px", 
+                                paddingBottom: "20px" 
+                            }}
                             basePurl={cellResults[0]?.basePurl}
+                            guidance={getGuidance}
                         />}
 
 
@@ -993,7 +1155,7 @@ if (r) {
                 
             </>}
 
-            {(cell.type == "jsx") && <>
+            {(cell.type === "jsx") && <>
                 {!presentationMode && (cell.view?.indexOf("editor") > -1) && <CodeMirror
                     value={cell.data}
                     style={{ border: "1px solid gray", borderRadius: "4px", maxHeight: "50vh", overflow:"auto" }}
@@ -1031,7 +1193,7 @@ if (r) {
 
             </>}
 
-            {(cell.type == "input") && <div style={{display:"flex", gap:"20px", alignItems:"center"}}>
+            {(cell.type === "input") && <div style={{display:"flex", gap:"20px", alignItems:"center"}}>
                 <div  style={{}}>Variable Name<br/></div>
                 <TextField
                     value={cell.parameters.varName}
@@ -1065,9 +1227,24 @@ if (r) {
 
             </div>}
 
+            {cellResults && (cell.view?.includes("html")) && 
+                    <div
+                        className=""
+                        style={{
+                            border: "1px solid gray",
+                            borderRadius: "4px",
+                            padding: "8px",
+                            maxHeight: "500px",
+                            overflow: "auto",
+                            display: "grid",
+                            backgroundColor: "white",
+                        }}>
+
+                <div dangerouslySetInnerHTML={{ __html: ""+cellResults }}/>
+            </div>}
 
 
-            {(cell.type == "text") && <>
+            {(cell.type === "text") && <>
                 {!presentationMode && (cell.view?.indexOf("editor") > -1) && <CodeMirror
                     value={cell.data}
                     style={{ border: "1px solid gray", borderRadius: "4px", maxHeight: "50vh", overflow:"auto" }}
@@ -1075,6 +1252,7 @@ if (r) {
                     onChange={(data) => {
                         console.log("index=", index, "event=", data);
                         cell.data = data;
+                        // Refresh preview after 2 seconds
                         if (timeOutId) clearTimeout(timeOutId);
                             timeOutId = setTimeout(async () => {
                             timeOutId = null;
@@ -1088,6 +1266,10 @@ if (r) {
                         <div>Preview:</div>
                         <div style={{ display: "flex", gap: "20px", alignItems:"center", paddingBottom:"8px"  }}>
                             {updateEnabled && <a onClick={() => deleteMarkdownResults()} style={{ paddingLeft: "20px", paddingRight: "20px" }}>Delete Results</a>}
+                        </div>
+                        <div style={{ marginLeft: "auto"}}>
+                            {cell.lastRunStart && <span>Run at: {formatDateTime(cell.lastRunStart)}</span>}
+                            {cell.lastRunDone && cell.lastRunStart && <span> for {Math.round((cell.lastRunDone-cell.lastRunStart)/1000)} sec</span>}
                         </div>
 
                     </div>}
