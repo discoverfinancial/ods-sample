@@ -204,6 +204,21 @@ export class DocMgr implements IUserGroupMgr, IServicesMgr {
             await this.http.postStream(`${REACT_APP_ODS_SERVER}/api/queries/searchSboms`, data, undefined, callback);
         } catch (e: any) {
             const err = new DocError(e);
+            if (e.code !== "ECONNABORTED") {
+                console.error(err);
+                throw err;
+            }
+        }
+    }
+
+    async getGuidanceSummary(email=""): Promise<any[] | null> {
+        try {
+            const response = await this.http.get(`${REACT_APP_ODS_SERVER}/api/queries/getGuidanceSummary?email=` +  email);
+            console.log("DocMgr.getGuidanceSummary response=", response)
+            const body = response.data;
+            return body;
+        } catch (e: any) {
+            const err = new DocError(e);
             console.error(err);
             throw err;
         }
