@@ -81,7 +81,7 @@ const StringListEditor: React.FC<Props> = ({ fieldName, label, docMgr, document,
                     }
                 }
             } catch (e) {
-                context && context.showErrorDialog && context.showErrorDialog(e);
+                if (context && context.showErrorDialog) { context.showErrorDialog(e) }
             }
         }
     }
