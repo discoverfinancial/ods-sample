@@ -316,7 +316,7 @@ const ComponentsDataGrid: React.FC<Props> = ({title, data,
                     return(<></>)
                 },
                 valueGetter: function (params: any) {
-                    if (params && params.data) {
+                    if (params && params.data && params.data.licenses) {
                         const value = params.data.licenses;
                         const licenses = [];
                         for (const v of value) {
