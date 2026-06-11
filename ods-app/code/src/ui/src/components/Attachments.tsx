@@ -16,10 +16,11 @@ interface Props {
     document: any;
     setDocument: React.Dispatch<React.SetStateAction<any | undefined>>;
     context: AppContext;
-    docMgr?: any
+    docMgr?: any;
+    showUpload?: boolean;
 }
 
-const Attachments: React.FC<Props> = ({document, setDocument, context, docMgr}) => {
+const Attachments: React.FC<Props> = ({document, setDocument, context, docMgr, showUpload=true}) => {
     if (!docMgr) {
         docMgr = DocMgr.getInstance();
     }
@@ -121,7 +122,7 @@ const Attachments: React.FC<Props> = ({document, setDocument, context, docMgr}) 
                 handleCopyRow={attachmentCopy}
                 disabled={!context.editMode}
             />
-            {context.editMode && <div>
+            {context.editMode && showUpload && <div>
                 <div className="attachmentsUpload" style={{ width: "350px", paddingTop: "10px" }}>
                     <FileUpload
                         key={"fileuploadKey_" + fileUploadKey}
