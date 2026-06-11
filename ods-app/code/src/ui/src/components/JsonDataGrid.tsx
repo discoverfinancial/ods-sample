@@ -15,7 +15,7 @@ import {
   } from 'ag-grid-community';
 import "./DataGrid.css";
 import SystemUpdateAltOutlinedIcon from '@mui/icons-material/SystemUpdateAltOutlined';
-var _ = require("lodash");
+import * as _ from 'lodash';
 
 interface Props {
     data: any;
@@ -121,7 +121,7 @@ const JsonDataGrid: React.FC<Props> = ({
                 colDefs.push(colDef)
             });
             setColumnDefs(colDefs)
-            if (gridRef.current!?.api) {
+            if (gridRef.current!.api) {
                 setNumRows("Number of rows: "+gridRef.current!.api.getDisplayedRowCount());
             }
         }
@@ -193,7 +193,7 @@ const JsonDataGrid: React.FC<Props> = ({
                     defaultColDef={defaultColDef}
                     columnDefs={columnDefs}
                     gridOptions={gridOptions}
-                    rowData={data || []}
+                    rowData={Array.isArray(data) ? data :[]}
                     suppressCellFocus={true}
                     onGridReady={onGridReady}
                     onRowDoubleClicked={onRowClicked}
