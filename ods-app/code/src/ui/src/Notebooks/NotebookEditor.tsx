@@ -2,11 +2,14 @@
  * Copyright (c) 2025 Capital One
 */
 
-import React, { useState, useEffect } from 'react';
-import { Button, TextField, Drawer, Backdrop, CircularProgress, Select, MenuItem } from '@mui/material'
-import { Checkbox } from '@mui/material';
+/* eslint-disable react-hooks/exhaustive-deps */
 
-import { AppContext } from "../common";
+import React, { useState, useEffect } from 'react';
+import { Button, TextField, Drawer, Backdrop, CircularProgress, 
+    Select, MenuItem, Accordion, AccordionSummary, AccordionDetails, Checkbox,
+  ListItemText } from '@mui/material'
+
+import { AppContext, Notebook, Person } from "../common";
 import StyledDialog from '../components/StyledDialog';
 
 import { ScriptMgr } from '../managers/ScriptMgr';
@@ -21,32 +24,57 @@ import { v4 as uuidv4 } from "uuid";
 import { formatDateTime, ScriptInfo } from '../common';
 import NotebookEditorCell from './NotebookEditorCell';
 import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined';
+// import DeleteForeverOutlinedIcon from '@mui/icons-material/DeleteForeverOutlined';
+// import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
 import RemoveCircleOutlineOutlinedIcon from '@mui/icons-material/RemoveCircleOutlineOutlined';
 import UploadFileOutlinedIcon from '@mui/icons-material/UploadFileOutlined';
 import ReplayOutlinedIcon from '@mui/icons-material/ReplayOutlined';
+// import PlayCircleFilledWhiteOutlinedIcon from '@mui/icons-material/PlayCircleFilledWhiteOutlined';
+// import NoteAddOutlinedIcon from '@mui/icons-material/NoteAddOutlined';
 import HelpOutlineOutlinedIcon from '@mui/icons-material/HelpOutlineOutlined';
+import Attachments from '../components/Attachments';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import MembersTable from '../components/MembersTable';
+import AddPerson from '../components/AddPerson';
+import { DocMgr } from '../managers/DocMgr';
+import { SimpleDialog } from '../components/SimpleDialog';
 
+// let prevSelectedNotebookId = "";
 let key = 1;
 let notebookUpdated = false;
 
-export interface Notebook {
-    cells: NotebookCell[];
-}
+// export interface Notebook {
+//     cells: NotebookCell[];
+// }
 
-export interface NotebookCell {
-    id: string;
-    name: string;
-    type: string;           // "code" | "text";
-    data: string;
-    view: string[];         // "tree" | "raw" | "sbom" | "json" | editor, preview;
-    columns?: string;
-    parameters?: any;
-    run?: any;              // run script method set by NotebookEditorCell so all cells can be run
-}
+// export interface NotebookCell {
+//     id: string;
+//     name: string;
+//     type: string;           // "code" | "text";
+//     data: string;
+//     view: string[];         // "tree" | "raw" | "sbom" | "json" | editor, preview;
+//     viewEditor: string;     // "show" or "" | "hide"
+//     columns?: string;
+//     parameters?: any;
+//     run?: any;              // run script method set by NotebookEditorCell so all cells can be run
+//     lastRunStart?: any;     // last time cell was run
+//     lastRunDone?: any;      // last time cell completed
+// }
 
 interface Props {
     context: AppContext;
 }
+
+// interface Props {
+//     context: AppContext;
+//     selectedId: string;
+//     setSelectedId: any;
+//     setShowSpinner?: any;
+//     presentationMode?: boolean;
+//     setPresentationMode?: any;
+//     embedMode?: boolean;
+//     setEmbedMode?: any;
+// }
 
 interface NotebookOptions {
     id: string;
@@ -54,15 +82,62 @@ interface NotebookOptions {
     isChecked: boolean;
 }
 
+// let initComplete = false;
 let importNotebooks: any[] = [];
+let noScrollToHash = false;
+let pageHeight = 0;
+
+const daysOfWeek = [
+    "Sun",
+    "Mon",
+    "Tue",
+    "Wed",
+    "Thu",
+    "Fri",
+    "Sat",
+]
+const timesOfWeek = [
+    {value: "", label: "None"},
+    {value: "0", label: "12 AM"},
+    {value: "1", label: "1 AM"},
+    {value: "2", label: "2 AM"},
+    {value: "3", label: "3 AM"},
+    {value: "4", label: "4 AM"},
+    {value: "5", label: "5 AM"},
+    {value: "6", label: "6 AM"},
+    {value: "7", label: "7 AM"},
+    {value: "8", label: "8 AM"},
+    {value: "9", label: "9 AM"},
+    {value: "10", label: "10 AM"},
+    {value: "11", label: "11 AM"},
+    {value: "12", label: "12 PM"},
+    {value: "13", label: "1 PM"},
+    {value: "14", label: "2 PM"},
+    {value: "15", label: "3 PM"},
+    {value: "16", label: "4 PM"},
+    {value: "17", label: "5 PM"},
+    {value: "18", label: "6 PM"},
+    {value: "19", label: "7 PM"},
+    {value: "20", label: "8 PM"},
+    {value: "21", label: "9 PM"},
+    {value: "22", label: "10 PM"},
+    {value: "23", label: "11 PM"},
+]
+
+const daysOfMonth:string[] = [];
+for (var i=1; i<32; i++) {
+    daysOfMonth.push(""+i);
+}
 
 const NotebookEditor: React.FC<Props> = ({ context }) => {
+// const NotebooksEditor: React.FC<Props> = ({ context, selectedId, setSelectedId, setShowSpinner, presentationMode, setPresentationMode, embedMode, setEmbedMode }) => {
+    // console.log("selectedId=", selectedId, "embedMode=", embedMode, "initComplete=", initComplete);
     const type = "notebook";
     const user = context.user;
     const scriptMgr = ScriptMgr.getInstance();
     const notebookMgr = NotebookMgr.getInstance();
 
-    let { id } = useParams();
+    const { id } = useParams();
     const scriptId = id || "";
 
     let presentationParam: any = null;
@@ -84,25 +159,55 @@ const NotebookEditor: React.FC<Props> = ({ context }) => {
     const [notebookName, setNotebookName] = useState<string>("");
     const [notebookPublic, setNotebookPublic] = useState<boolean>(true);
     const [notebookTag, setNotebookTag] = useState<string>("");
+    const [notebookTimeout, setNotebookTimeout] = useState<string>("");
     const [notebookDescription, setNotebookDescription] = useState<string>("");
+    const [notebookEditors, setNotebookEditors] = useState<Person[]>([]);
 
     const [snapshots, setSnapshots] = useState<any[]>([]);
     const [selectedSnapshot, setSelectedSnapshot] = useState<string>("");
     const [saveSnapshotDescription, setSaveSnapshotDescription] = useState<string>("");
+    const [restoreSnapshotEnabled, setRestoreSnapshotEnabled] = useState<boolean>(false);
 
     // Variables for save form
     const [saveNotebookName, setSaveNotebookName] = useState<any>();
     const [saveNotebookPublic, setSaveNotebookPublic] = useState<any>();
     const [saveNotebookTag, setSaveNotebookTag] = useState<any>();
+    const [saveNotebookTimeout, setSaveNotebookTimeout] = useState<any>();
     const [saveNotebookDescription, setSaveNotebookDescription] = useState<any>();
+
+    const [saveNotebookRunCells, setSaveNotebookRunCells] = useState<any>([]);
+    const [snapshotText, setSnapshotText] = useState<string>("");
+
+
+    const [daysSelected, setDaysSelected] = useState<any>([]);
+    const [weeklyTimeSelected, setWeeklyTimeSelected] = useState<any>([]);
+    const [monthlyTimeSelected, setMonthlyTimeSelected] = useState<string>(timesOfWeek[0].value);
+    const [monthlyDaysSelected, setMonthlyDaysSelected] = useState<any>([]);
+    const [enabled, setEnabled] = useState(false);
+
+
+    // const [parameters, setParameters] = useState<string>("");
 
     const [cellResults, setCellResults] = useState<any>({})
     const [showHelp, setShowHelp] = useState<boolean>(false);
     const [updateEnabled, setUpdateEnabled] = useState<boolean>(false);
+    // const [notebookUpdated, setNotebookUpdated] = useState<boolean>();
 
     const [showDialog, setShowDialog] = useState<any>(null);
+    const [showEditorsDialog, setShowEditorsDialog] = useState<any>(null);
     const [showSpinner, setShowSpinner] = useState<string>("Loading data...");
+    const [isCancelPressed, setIsCancelPressed] = useState<boolean>(false);
     const [error, setError] = useState<any>();
+
+    useEffect(() => {
+        setTimeout(() => {
+            setShowDialog((prevDialog: any) => {
+                if (prevDialog && saveNotebookRunCells) {
+                    return { ...prevDialog, toBeRendered: prevDialog.text(saveNotebookRunCells, daysSelected, monthlyDaysSelected, weeklyTimeSelected) }
+                }
+                return prevDialog;
+                })}, 0)
+    }, [saveNotebookRunCells, daysSelected, monthlyDaysSelected, weeklyTimeSelected])
 
     useEffect(() => {
         async function init() {
@@ -114,17 +219,28 @@ const NotebookEditor: React.FC<Props> = ({ context }) => {
         if (!initComplete) {
             init();
         }
+        const handleClicks = (event:any) => {
+            console.info(`Clicked on: ${event.target.tagName}`);
+            if (event.target.tagName === "A") {
+                noScrollToHash = false;
+            }
+            else {
+                noScrollToHash = true;
+            }
+        };
+        document.addEventListener('click', handleClicks, { capture: true });
+        return () => {
+            document.removeEventListener('click', handleClicks);
+        };
     }, [])
-
-    useEffect(() => {
-        console.log("initComplete changed to ", initComplete);
-    }, [initComplete]);
-
+    
     useEffect(() => {
         setShowSpinner("");
     }, [initComplete])
 
-    useEffect(() => {
+   const updateWindowHistory = () => {
+        let hash = window.location.hash;
+        console.log("hash=", hash)
         let params = "";
         if (presentationMode) {
             if (!params) {
@@ -144,8 +260,49 @@ const NotebookEditor: React.FC<Props> = ({ context }) => {
             }
             params = params + "embed=true";
         }
+        if (hash === "#top") {
+            hash = "";
+        }
 
-        window.history.replaceState({}, document.title, `/notebook/${id}${params}` );
+        window.history.replaceState({}, document.title, `/notebook/${id}${hash}${params}` );
+    }
+
+    const observer = new ResizeObserver((entries) => {
+    for (let entry of entries) {
+        const { width, height } = entry.contentRect;
+        if (pageHeight !== height) {
+            pageHeight = height;
+            console.log(`Page content size changed: ${width}px x ${height}px`);
+            console.log(`noScrollToHash = ${noScrollToHash}`)
+            navigateToHash();
+        }
+    }
+    });
+    observer.observe(document.body);
+
+    const navigateToHash = () => {
+        // console.log(`navigateToHash: noScrollToHash = ${noScrollToHash}`)
+        if (noScrollToHash) return;
+
+        const hash = window.location.hash;
+        console.log("hash=", hash)
+        if (hash) {
+            const el = document.getElementById(hash.substring(1))
+            if (el) {
+                const elementPosition = el.getBoundingClientRect().top;
+                const offsetPosition = elementPosition + window.scrollY - 60;
+                window.scrollTo({
+                    top: offsetPosition,
+                });
+            }
+            if (hash === "#top") {
+                updateWindowHistory();
+            }
+        }
+    }
+
+    useEffect(() => {
+        updateWindowHistory();        
     }, [presentationMode, embedMode])    
 
     async function loadNotebook(id: string) {
@@ -174,18 +331,18 @@ const NotebookEditor: React.FC<Props> = ({ context }) => {
     const saveNotebook = async(update: string) => {
 
         let label = "";
-        if (update == "update") {
+        if (update === "update") {
             label = "update";
         }
-        else if (update == "save") {
+        else if (update === "save") {
             label = "Save"
         }
 
         let title = "Save Notebook";
-        if (update == "update") {
+        if (update === "update") {
             title = "Save Existing Notebook";
         }
-        else if (update == "save") {
+        else if (update === "save") {
             title = "Save as New Notebook";
         }
 
@@ -193,37 +350,42 @@ const NotebookEditor: React.FC<Props> = ({ context }) => {
         setSaveNotebookDescription(notebookDescription);
         setSaveNotebookPublic(notebookPublic);
         setSaveNotebookTag(notebookTag);
+        setSaveNotebookTimeout(notebookTimeout)
+        setSaveNotebookRunCells([...saveNotebookRunCells]);
 
         setShowDialog({
             title: title, 
             yesLabel: label,
             update: update,
             scriptId: currentNotebook?.id || "",
-            text: (<div>
+            text: (saveNotebookRunCells: any, daysSelected: any, monthlyDaysSelected: any, weeklyTimeSelected: any) => { 
+                return (
+                <div>
                 <div className="spacer">
                     <b>Name: </b> 
                 </div>
-                <div style={{paddingLeft: "16px"}}>
+                <div>
                     <TextField
                         defaultValue={notebookName} 
                         onChange={(event) => setSaveNotebookName(event.target.value)}
                         fullWidth
                         sx={{
-                            width: "400px",
+                            width: "100%",
+                            minWidth: "400px",
                         }}
                     />
                 </div>
 
                 <div className="spacer">
-                    <b>Description: </b> 
+                    <b>Description [optional]: </b> 
                 </div>
-                <div style={{paddingLeft: "16px"}}>
+                <div>
                     <TextField
                         defaultValue={notebookDescription} 
                         onChange={(event) => setSaveNotebookDescription(event.target.value)}
                         fullWidth
                         sx={{
-                            width: "400px",
+                            width: "100%",
                         }}
                     />
                 </div>
@@ -231,7 +393,7 @@ const NotebookEditor: React.FC<Props> = ({ context }) => {
                 <div className="spacer">
                     <b>Public: </b> 
                 </div>
-                <div style={{paddingLeft: "16px"}}>
+                <div>
                 <Checkbox
                     defaultChecked={notebookPublic} 
                     onChange={(event, value) => {
@@ -241,23 +403,218 @@ const NotebookEditor: React.FC<Props> = ({ context }) => {
                 </div>
 
                 <div className="spacer">
-                    <b>Tag: </b> 
+                    <b>Tag [optional]: </b> 
                 </div>
-                <div style={{paddingLeft: "16px"}}>
+                <div>
                     <TextField
                         defaultValue={notebookTag} 
                         onChange={(event) => setSaveNotebookTag(event.target.value)}
                         fullWidth
                         sx={{
-                            width: "400px",
+                            width: "100%",
                         }}
                     />
                 </div>
 
-            </div>),
+                <div className="spacer">
+                    <b>Timeout [optional - default is 600]: </b> 
+                </div>
+                <div style={{display:"flex", gap:"8px", alignItems:"center"}}>
+                    <TextField
+                        defaultValue={notebookTimeout} 
+                        onChange={(event) => setSaveNotebookTimeout(event.target.value)}
+                        fullWidth
+                        sx={{
+                            width: "100%",
+                        }}
+                    />
+                    <span>seconds</span>
+                </div>
+
+                <div className="spacer" style={{paddingBottom:"12px"}}>
+                    <b>Schedule [optional]:</b>
+                </div>
+                <div style={{border: "1px solid var(--border)", padding:"8px", borderRadius:"8px"}}>
+                <div>
+                    <div style={{display: 'inline-block', paddingRight: "10px"}}>
+                        <div className="spacer1">
+                            <b>Weekly Schedule [optional]</b>
+                            <br/>
+                            <b>Day(s) of week</b>
+                        </div>
+                        <div>
+                            <Select 
+                                multiple 
+                                value={daysSelected}
+                                sx={{ width: "210px", }}
+                                onChange={(event) => {
+                                    setDaysSelected([ ...event.target.value]);
+                                }}
+                                renderValue={(value) => value.map((d: any) => d).join(',')}
+                                >
+                                {
+                                    daysOfWeek.map((day) => (
+                                        <MenuItem key={day} value={day}>
+                                            <Checkbox checked={daysSelected.includes(day)} />
+                                            <ListItemText>{day}</ListItemText>
+                                        </MenuItem>
+                                    ))
+                                }
+                            </Select>
+                        </div>
+                    </div>
+                    <div style={{display: 'inline-block'}}>
+                        <div className="spacer">
+                            <b>Time (UTC)</b>
+                        </div>
+                        <div>
+                            <Select
+                                multiple
+                                value={weeklyTimeSelected}
+                                sx={{ width: "180px", }}
+                                onChange={(event) => {
+                                    console.log("weekly time selected=", event.target.value);
+                                    setWeeklyTimeSelected([...event.target.value]);
+                                }}
+                                renderValue={(value) => value?.map((d: any) => timesOfWeek.find(t => t.value == d)?.label).join(',')}
+                                >
+                                {
+                                    timesOfWeek.map((time) => (
+                                        <MenuItem key={time.value} value={time.value}>
+                                            <Checkbox checked={weeklyTimeSelected.includes(time.value)} />
+                                            <ListItemText>{time.label}</ListItemText>
+                                        </MenuItem>
+                                    ))
+                                }
+                            </Select>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <div style={{display: 'inline-block', paddingRight: "10px"}}>
+                        <div className="spacer">
+                            <b>Monthly Schedule [optional]</b>
+                            <br/>
+                            <b>Day(s) of month</b>
+                        </div>
+                        <div>
+                            <Select 
+                                multiple 
+                                value={monthlyDaysSelected}
+                                sx={{ width: "210px", }}
+                                onChange={(event) => {
+                                    setMonthlyDaysSelected([ ...event.target.value]);
+                                }}
+                                renderValue={(value) => value.map((d: any) => d).join(',')}
+                                >
+                                {
+                                    daysOfMonth.map((month) => (
+                                        <MenuItem key={month} value={month}>
+                                            <Checkbox checked={monthlyDaysSelected.includes(month)} />
+                                            <ListItemText>{month}</ListItemText>
+                                        </MenuItem>
+                                    ))
+                                }
+                            </Select>
+                        </div>
+                    </div>
+                    <div style={{display: 'inline-block'}}>
+                        <div className="spacer">
+                            <b>Time (UTC)</b>
+                        </div>
+                        <div>
+                            <Select  
+                                defaultValue={monthlyTimeSelected}
+                                sx={{ width: "180px", }}
+                                onChange={(event) => {
+                                    setMonthlyTimeSelected(event.target.value);
+                                }}>
+                                {
+                                    timesOfWeek.map((time) => (
+                                        <MenuItem key={time.value} value={time.value}>{time.label}</MenuItem>
+                                    ))
+                                }
+                            </Select>
+                        </div>
+                    </div>
+                </div>
+                <div className="spacer">
+                    <b>Select cell(s) to run: </b>
+                </div>
+                <div>
+                    <Select
+                        multiple
+                        value={saveNotebookRunCells || []}
+                        onChange={(event) => {
+                            const value = event.target.value;
+                            if (value.includes("all")) {
+                                if (saveNotebookRunCells.length === notebook.cells.length) {
+                                    setSaveNotebookRunCells([]);
+                                } else {
+                                    setSaveNotebookRunCells(notebook.cells.map((cell) => cell.id));
+                                }
+                            } else {
+                                setSaveNotebookRunCells([...value]);
+                            }
+                        }}
+                        sx={{
+                            width: "100%",
+                        }}
+                    renderValue={(value) => value.map((c: any) => {
+                        const cell = notebook.cells.find((cell) => cell.id === c);
+                        return cell ? `${cell.name || "Cell"} ${notebook.cells.indexOf(cell)}` : c;
+                    }).join(',')}
+
+                    >
+                        <MenuItem value={'all'} key={"all"}>
+                            <Checkbox
+                                checked={saveNotebookRunCells && saveNotebookRunCells.length === notebook.cells.length}
+                            />
+                            <ListItemText>Run All Cells</ListItemText>
+                        </MenuItem>
+                        {notebook.cells.map((cell, index) => (
+                            <MenuItem key={`${cell.id}_${index}`} value={cell.id}>
+                                <Checkbox
+                                    checked={saveNotebookRunCells && saveNotebookRunCells.includes(cell.id)}
+                                />
+                                <ListItemText>{`${cell.name || "Cell"} ${index}`}</ListItemText>
+                            </MenuItem>
+                        ))} 
+                    </Select>
+                </div>
+                <div className='spacer'>
+                    <b>Snapshot Description [optional]:</b>
+                </div>
+                <div>
+                    <TextField
+                        defaultValue={snapshotText}
+                        onChange={(event) => setSnapshotText(event.target.value)}
+                         fullWidth
+                        sx={{
+                            width: "400px",
+                        }}
+                        />
+                </div>
+                <div className="spacer">
+                    <b>Enable Schedule: </b>
+                </div>
+                <Checkbox
+                defaultChecked={enabled}
+                onChange={(e) => {
+                    setEnabled(e.target.checked)
+                }}
+                />
+                </div>
+            </div>)
+            }
         });
     }
 
+    /**
+     * Render save dialog
+     * 
+     * @returns 
+     */
     const renderAlert = () => {
 
         if (!showDialog) {
@@ -276,6 +633,7 @@ const NotebookEditor: React.FC<Props> = ({ context }) => {
                             id: cell.id,
                             name: cell.name,
                             view: cell.view,
+                            viewEditor: cell.viewEditor,
                             parameters: cell.parameters,
                             columns: cell.columns,
                         }
@@ -289,6 +647,16 @@ const NotebookEditor: React.FC<Props> = ({ context }) => {
                     }
                     console.log("_notebook=", _notebook)
                     const script = JSON.stringify(_notebook)
+                    const runAtPayload: any = {
+                        cells: [...saveNotebookRunCells], 
+                        dayOfWeek: [...daysSelected],
+                        weeklyTime: [...weeklyTimeSelected], 
+                        dayOfMonth: [...monthlyDaysSelected], 
+                        monthlyTime: monthlyTimeSelected, 
+                        enabled: enabled,
+                        snapshot: snapshotText
+                    };
+                    // console.log("script=", script);
 
                     if (showDialog.update == "update") {
                         if (!updateEnabled) { 
@@ -304,22 +672,29 @@ const NotebookEditor: React.FC<Props> = ({ context }) => {
                             // parameters: parameters,
                             description: saveNotebookDescription,
                             tag: saveNotebookTag,
+                            timeout: saveNotebookTimeout,
+                            runAt: runAtPayload,
+
                         });
                         console.log("updated notebook=", r);
                         setNotebookName(saveNotebookName);
                         setNotebookPublic(saveNotebookPublic);
                         setNotebookDescription(saveNotebookDescription);
                         setNotebookTag(saveNotebookTag);
+                        setNotebookTimeout(saveNotebookTimeout);
                     }
-                    else if (showDialog.update == "save") {
+                    else if (showDialog.update === "save") {
                         console.log("Creating notebook ", notebookName);
                         const r = await scriptMgr.createDocument({
                             type: type,
                             public: saveNotebookPublic,
                             name: saveNotebookName,
                             script: script,
+                            // parameters: parameters,
                             description: saveNotebookDescription,
                             tag: saveNotebookTag,
+                            timeout: saveNotebookTimeout,
+                            runAt: runAtPayload,
                         })
                         if (r) {
                             // Copy variables from current notebook to new one & create initial snapshot
@@ -327,7 +702,9 @@ const NotebookEditor: React.FC<Props> = ({ context }) => {
                                 const c = await notebookMgr.process(`copyNotebookvars/${id}/${r.id}`)
                                 const snapshotName = "0";
                                 const r1 = await notebookMgr.processPost(`saveNotebookVarsSnapshot/${r.id}/${snapshotName}`, {
-                                    description: "Original data",})
+                                    description: "Original data",
+                                    notebook: JSON.stringify(r),
+                                })
                                 console.log("save snapshot =", r1);
                             }
                             catch (e) {
@@ -342,6 +719,7 @@ const NotebookEditor: React.FC<Props> = ({ context }) => {
                     setSaveNotebookName(undefined);
                     setSaveNotebookDescription(undefined);
                     setSaveNotebookTag(undefined);
+                    setSaveNotebookTimeout(undefined);
 
                     notebookUpdated = false;
                     if (embedMode) {
@@ -369,15 +747,108 @@ const NotebookEditor: React.FC<Props> = ({ context }) => {
             sx={{
             }}
         >
-            {showDialog ? showDialog.text : ""}
+            {showDialog ? showDialog.toBeRendered ? showDialog.toBeRendered : showDialog.text : ""}
         </StyledDialog>
+        )
+    }
+
+    async function handleEditorsUpdated(data:Person[]) : Promise<void> {
+        console.log("handleEditorsUpdated() editor=",data);
+        if (currentNotebook && updateEnabled) {
+            scriptMgr.saveDocument({id: currentNotebook.id, editors: data}, "editors");
+        }
+    }
+
+    async function handleAddMember(email: string, create: boolean = false): Promise<void> {
+        console.log(`handleAddMember(${email}, ${create})`);
+        if (!email) {
+            setShowEditorsDialog({title:"Error adding editor.", text: `Missing email address.`});
+            return;
+        }
+        setShowSpinner("Getting emails...");
+        const docMgr = DocMgr.getInstance();
+        const person = await docMgr.getUserProfile(email);
+        setShowSpinner("");
+        console.log("person=",person);
+        let editor: Person = {name:email.split("@")[0], id: "", roles: [], department:"", email:(email.indexOf("@")>-1 ? email : ""), title:"", employeeNumber:""};
+        if (!person || person.error || person.length === 0) {
+            if (!create) {
+                setShowEditorsDialog({title:"Error adding editor.", text: `The editor's email address "${email}" was not found.  Do you want to add them anyway?`, email:email});
+                return;
+            }
+        }
+        else if (person.length > 1) {
+            let emails = [];
+            for (var i=0; i<person.length; i++) {
+                let em:string = person[i].user.email;
+                emails.push(<tr key={i}><td>{person[i].user.name}</td><td>{em}</td><td><Button onClick={() => {handleAddMember(em); setShowEditorsDialog(null);}}>Add</Button> </td></tr>);
+            }
+            setShowEditorsDialog({
+                title:"Multiple Emails Were Found", 
+                text: (<>
+                    <div>
+                    <table><thead><tr><th>Name</th><th>Email</th><th>Action</th></tr></thead><tbody>{emails}</tbody></table>
+                    </div>
+                    <div style={{marginTop:"10px"}}>Select one to Add or Close to cancel.</div></>
+                ),
+            });
+            return;
+        }
+        else {
+            editor.id = person[0].user.id || "";
+            editor.roles = person[0].user.roles || [];
+            editor.email = person[0].user.email;
+            editor.name = person[0].user.name || person[0].user.email;
+            editor.department = person[0].user.department || "";
+            editor.title = person[0].user.title || "";
+            editor.employeeNumber = person[0].user.employeeNumber || "";
+        }
+        let data = [...notebookEditors];
+        data.push(editor);
+        console.log("new editor list=",data)
+        await setNotebookEditors(data);
+        await handleEditorsUpdated(data);
+    }
+
+    const renderEditorsAlert = () => {
+        console.log("renderEditorsAlert=",showEditorsDialog);
+        if (!showEditorsDialog) {
+            return;
+        }
+        let actions=[
+            {
+                label: "Close",
+                onClick: async function onClick() {
+                    return(setShowEditorsDialog(null))
+                },
+            },
+        ];
+        if (showEditorsDialog.email) {
+            actions.push({
+                label: "Yes",
+                onClick: async function onClick() {
+                    await handleAddMember(showEditorsDialog.email, true);
+                    return(setShowEditorsDialog(null))
+                }
+            });
+        }
+
+        return (<SimpleDialog
+            open={showEditorsDialog != null}
+            actions={actions}
+            onClose={function onClose() {
+                return(setShowEditorsDialog(null));
+            }}
+            title={showEditorsDialog ? showEditorsDialog.title : ""}
+            >
+            {showEditorsDialog ? showEditorsDialog.text : ""}
+            </SimpleDialog>
         )
     }
 
     let _importData:any = null;
 
     async function exportNotebook() : Promise<void> {
-        if (!updateEnabled) { return }
         console.log("exportNotebook()");
         if (!currentNotebook || !currentNotebook.id) {
             console.log("No current notebook selected");
@@ -385,10 +856,11 @@ const NotebookEditor: React.FC<Props> = ({ context }) => {
         }
         const exportData = {
             public: false,
-            name: currentNotebook.name,
-            description: currentNotebook.description,
-            tag: currentNotebook.tag,
-            script: currentNotebook.script,
+            name: notebookName, //currentNotebook.name,
+            description: notebookDescription, // currentNotebook.description,
+            tag: notebookTag, // currentNotebook.tag,
+            script: JSON.stringify(notebook),  //currentNotebook.script,
+            timeout: notebookTimeout, //currentNotebook.timeout,
         };
         setShowDialog({
             title: "Export Notebook",
@@ -575,6 +1047,36 @@ const NotebookEditor: React.FC<Props> = ({ context }) => {
             el.innerHTML = r.join("");
         }
     };
+
+
+    // /**
+    //  * Select notebook
+    //  * 
+    //  * @param notebookId The notebook id
+    //  */
+    // async function selectNotebook (notebookId: string) {
+    //     console.log(`selectScript(${notebookId})`);
+    //     for (const q of notebooks) {
+    //         if (q.id == notebookId) {
+    //             setCurrentNotebook(q);
+    //         }
+    //     }
+    // }
+
+    // // If new notebook id was selected, then set current notebook
+    // useEffect(() => {
+    //     console.log("selectedId changed: ", selectedId)
+    //     if (selectedId) {
+    //         if (prevSelectedNotebookId && selectedId != prevSelectedNotebookId) {
+    //             console.log(">>  clearing result: selectedId=", selectedId, " prevSelectedScriptId=", prevSelectedNotebookId);
+    //             // cellResults = {};
+    //         }
+    //         prevSelectedNotebookId = selectedId;
+    //         selectNotebook(selectedId);
+    //         // setInitComplete(true);
+    //         initComplete = true;
+    //     }
+    // }, [selectedId])
     
 
     // If current notebook changed
@@ -587,25 +1089,46 @@ const NotebookEditor: React.FC<Props> = ({ context }) => {
             console.log(" -- notebook=", json);
             for (var i=0; i<json.cells.length; i++) {
                 // Init parameters if not already set
-                if (!json.cells[i].parameters) {
+                if (!json.cells[i].parameters) { //} || (typeof json.cells[i].parameters != "object")) {
                     json.cells[i].parameters = {};
                 }
                 if (typeof json.cells[i].view == "string") {
                     json.cells[i].view = [(json.cells[i] as any).view];
                 }
+                (json.cells[i] as any).ref = React.createRef()
             }
             setNotebook(json);
+            // setParameters(currentNotebook.parameters);
             setNotebookDescription(currentNotebook.description);
             setNotebookPublic(currentNotebook.public);
             setNotebookTag(currentNotebook.tag);
+            setNotebookTimeout(currentNotebook.timeout);
+             setNotebookEditors(currentNotebook.editors || []);
+
+             setDaysSelected((currentNotebook as any).runAt?.dayOfWeek || []);
+             setWeeklyTimeSelected((currentNotebook as any).runAt?.weeklyTime || []);
+             setMonthlyDaysSelected((currentNotebook as any).runAt?.dayOfMonth || []);
+             setMonthlyTimeSelected((currentNotebook as any).runAt?.monthlyTime || "0");
+             setSnapshotText((currentNotebook as any).runAt?.snapshot || "");
+             setEnabled((currentNotebook as any).runAt?.enabled || false);
+             setSaveNotebookRunCells((currentNotebook as any).runAt?.cells || []);
+             
+
+            //  setDaysSelected((currentNotebook as any).runAt?.dayOfWeek || []);
+
+             // missing runAt details from API
 
             if (context.isAdministrator) {
                 _updateEnabled = true;
             }
-            else if (currentNotebook.owner.email == context.user.email) {
+            else if (currentNotebook.owner.email === context.user.email) {
+                _updateEnabled = true;
+            }
+            else if (currentNotebook.editors?.some(((user:Person) => user.email === context.user.email))) {
                 _updateEnabled = true;
             }
             setUpdateEnabled(_updateEnabled);
+            context.editMode = _updateEnabled; // for attachments
 
             getSnapshotNames();
         }
@@ -625,6 +1148,11 @@ const NotebookEditor: React.FC<Props> = ({ context }) => {
             setCellNames(_cellNames);
         }
     }, [notebook])
+
+    // useEffect(() => {
+    //     console.log(`notebook name changed = ${notebookName}`);
+    // }, [notebookName]);
+
 
     // Used for autoselect
     const GroupHeader = styled('div')(({ theme }) => ({
@@ -665,18 +1193,21 @@ const NotebookEditor: React.FC<Props> = ({ context }) => {
      */
     const cellChanged = (index: number, refresh=false) => {
         if (!updateEnabled) { return }
+        // notebook.cells[index] = cell;
         if (refresh) {
             setNotebook({...notebook})
         }
+        // setNotebookUpdated(true);
         notebookUpdated = true;
     }
 
     const updateNotebook = async () => {
-        if (!notebookUpdated) { 
-            console.log("Notebook not changed, so no need to save it")
-            return 
-        }
+        // if (!notebookUpdated) { 
+        //     console.log("Notebook not changed, so no need to save it")
+        //     return 
+        // }
         console.log("Notebook changed, so saving it");
+        // setNotebookUpdated(false);
         notebookUpdated = false;
         setNotebook({...notebook})
         const script = JSON.stringify(notebook)
@@ -686,10 +1217,12 @@ const NotebookEditor: React.FC<Props> = ({ context }) => {
             id: currentNotebook?.id,
             type: type,
             name: notebookName, 
-            script: script,
+            script: script, 
+            // parameters: parameters,
             public: true,
             description: notebookDescription, 
-            tag: notebookTag 
+            tag: notebookTag,
+            timeout: notebookTimeout,
         });
     }
 
@@ -702,12 +1235,17 @@ const NotebookEditor: React.FC<Props> = ({ context }) => {
         const r = [];
         if (currentNotebook) {
             for (var i=0; i<notebook.cells.length; i++) {
+                r.push(<div id={"cell"+i}/>);
+                if (notebook.cells[i].name) r.push(<div id={notebook.cells[i].name}/>);
                 r.push(<div className="notebookCell" >
                 <NotebookEditorCell 
                     key={"cell-"+i+"-"+notebook.cells[i].id}
                     context={context}
                     setShowSpinner={setShowSpinner}
+                    isCancelPressed={isCancelPressed}
+                    setIsCancelPressed={setIsCancelPressed}
                     notebookId={currentNotebook.id} 
+                    notebookName={currentNotebook.name}
                     notebook={notebook}
                     cellChanged={cellChanged}
                     cellIds={cellIds}
@@ -720,6 +1258,7 @@ const NotebookEditor: React.FC<Props> = ({ context }) => {
                     presentationMode={presentationMode}
                     updateEnabled={updateEnabled}
                     updateNotebook={updateNotebook}
+                    timeout={notebookTimeout}
                 />
                 </div>)
                 if (i < notebook.cells.length-1) {
@@ -727,8 +1266,35 @@ const NotebookEditor: React.FC<Props> = ({ context }) => {
                     </div>)
                 }
             }
+            navigateToHash();
         }
         return r;
+    }
+
+    const renderQuickLinks = () => {
+        const ql = [];
+        if (currentNotebook) {
+            ql.push(<a href="#top">Top</a>)
+            for (var i=0; i<notebook.cells.length; i++) {
+                const h = "#cell"+i;
+                // eslint-disable-next-line no-loop-func, jsx-a11y/anchor-is-valid
+                ql.push(<a onClick={()=> {
+                    noScrollToHash = false;
+                    window.location.hash = h;
+                }}>{i}</a>);
+
+                const name = notebook.cells[i].name;
+                if (name) {
+                    // eslint-disable-next-line no-loop-func, jsx-a11y/anchor-is-valid
+                    ql.push(<a onClick={()=> {
+                        noScrollToHash = false;
+                        window.location.hash = "#" + name;
+                    }}>{name}</a>);
+                }
+            }
+            ql.push(<a href="#bottom">Bottom</a>)
+            return(<div className='fixed-bottom-right' style={{display:"flex", "gap":10, "flexWrap": "wrap"}}>Jump to cell: {ql} </div>);
+        }
     }
 
     /**
@@ -742,13 +1308,13 @@ const NotebookEditor: React.FC<Props> = ({ context }) => {
         const insertAtIndex = index+position;
         const _notebook:Notebook = {cells: []};
         for (var i=0; i<notebook.cells.length; i++) {
-            if (i == insertAtIndex) {
-                _notebook.cells.push({type:"code", data:"// Add your code here\nsetResult('');", id:uuidv4(), name: "", view:["raw"]})
+            if (i === insertAtIndex) {
+                _notebook.cells.push({type:"code", data:"// Add your code here\nsetResult('');", id:uuidv4(), name: "", view:["raw"], viewEditor: ""})
             }
             _notebook.cells.push(notebook.cells[i]);
         }
-        if (insertAtIndex == notebook.cells.length) {
-            _notebook.cells.push({type:"code", data:"// Add your code here\nsetResult('');", id:uuidv4(), name: "", view:["raw"]})
+        if (insertAtIndex === notebook.cells.length) {
+            _notebook.cells.push({type:"code", data:"// Add your code here\nsetResult('');", id:uuidv4(), name: "", view:["raw"], viewEditor: ""})
         }
         setNotebook(_notebook);
     }
@@ -774,7 +1340,7 @@ const NotebookEditor: React.FC<Props> = ({ context }) => {
         await deleteResults(index);
         const _notebook:Notebook = {cells: []};
         for (var i=0; i<notebook.cells.length; i++) {
-            if (i != index) {
+            if (i !== index) {
                 _notebook.cells.push(notebook.cells[i]);
             }
         }
@@ -853,9 +1419,9 @@ const NotebookEditor: React.FC<Props> = ({ context }) => {
         }
     }
 
-    const saveSnapshot = async() => {
+    const saveSnapshot = async(snapshotType="") => {
         if (!updateEnabled) { return }
-        console.log("saveSnapshot()");
+        console.log(`saveSnapshot(${snapshotType})`);
         if (!currentNotebook || !currentNotebook.id) {
             console.log("No current notebook selected");
             return;
@@ -863,7 +1429,10 @@ const NotebookEditor: React.FC<Props> = ({ context }) => {
         try {
             const snapshotName = Date.now().toString();
             const r = await notebookMgr.processPost(`saveNotebookVarsSnapshot/${currentNotebook.id}/${snapshotName}`, {
-                description: saveSnapshotDescription,})
+                description: saveSnapshotDescription,
+                // notebook: JSON.stringify(currentNotebook),
+                snapshotType: snapshotType,
+            })
             console.log("save snapshot =", r);
             await getSnapshotNames();
         }
@@ -872,15 +1441,16 @@ const NotebookEditor: React.FC<Props> = ({ context }) => {
         }
     }
     
-    const restoreSnapshot = async() => {
+    const restoreSnapshot = async(restoreType="") => {
         if (!updateEnabled) { return }
-        console.log("restoreSnapshot()");
+        console.log(`restoreSnapshot(${restoreType})`);
         if (!currentNotebook || !currentNotebook.id || !selectedSnapshot) {
             console.log("No current notebook or snapshot selected");
             return;
         }
         try {
-            const r = await notebookMgr.process(`restoreNotebookVarsSnapshot/${currentNotebook.id}/${selectedSnapshot}`)
+            const restoreTypeString = restoreType ? `?restoreType=${restoreType}` : "";
+            const r = await notebookMgr.process(`restoreNotebookVarsSnapshot/${currentNotebook.id}/${selectedSnapshot}${restoreTypeString}`)
             console.log("restore snapshot =", r);
             loadNotebook(currentNotebook.id);
         }
@@ -898,7 +1468,7 @@ const NotebookEditor: React.FC<Props> = ({ context }) => {
         }
         let name = "";
         for (const snapshot of snapshots) {
-            if (snapshot.name == selectedSnapshot) {
+            if (snapshot.name === selectedSnapshot) {
                 name = snapshot.description;
             }
         }
@@ -943,8 +1513,9 @@ const NotebookEditor: React.FC<Props> = ({ context }) => {
         return (
         <div>
             {renderAlert()}
+            {renderEditorsAlert()}
 
-            <div className="editorDiv">
+            <div id="top" className="editorDiv">
 
                 <div className="detailDiv">
                 <div style={{display:"flex", gap:"20px", width:"100%"}}>
@@ -1013,6 +1584,8 @@ const NotebookEditor: React.FC<Props> = ({ context }) => {
     return (
         <div>
             {renderAlert()}
+            {renderEditorsAlert()}
+
             <Navbar context={context} />
             <Backdrop
                 sx={{ color: '#fff', zIndex: (theme: any) => theme.zIndex.drawer + 1 }}
@@ -1021,8 +1594,12 @@ const NotebookEditor: React.FC<Props> = ({ context }) => {
                 <div className="spinnerDiv">
                     <p>{showSpinner}</p>
                     <CircularProgress color="info" />
+                    <br />
+                    <Button onClick={() => {setIsCancelPressed(true)}} disabled={isCancelPressed}>Cancel</Button>
                 </div>
             </Backdrop>
+            {renderQuickLinks()}
+
             <div className="content1" style={{ marginTop: "0px" }}>
                 <TopMenu user={context.user} isAdmin={context.isAdministrator} />
                 <div className="content">
@@ -1057,10 +1634,19 @@ const NotebookEditor: React.FC<Props> = ({ context }) => {
                                     <b>Description: </b>
                                     {notebookDescription}
                                 </div>}
+                                <div className="spacer">
+                                    <b>Owner: </b>
+                                    {currentNotebook?.owner.name} ({currentNotebook?.owner.email})
+                                </div>
 
                                 {notebookTag && <div className="spacer">
                                     <b>Tag: </b>
                                     {notebookTag}
+                                </div>}
+
+                                {notebookTimeout && <div className="spacer">
+                                    <b>Timeout: </b>
+                                    {notebookTimeout} seconds
                                 </div>}
 
                                 <div style={{
@@ -1078,13 +1664,14 @@ const NotebookEditor: React.FC<Props> = ({ context }) => {
                                                 runAllCells();
                                             }}
                                         >Run All Cells</Button>
+                                        {/* <Button style={{marginLeft:"20px"}} onClick={async () => { await docMgr.stopScript() }}>Stop</Button> */}
                                     </div>
                                     <div>
                                         <Button style={{marginLeft:"20px"}} variant="outlined" startIcon={<SaveOutlinedIcon/>} onClick={()=>saveNotebook("save")}>Save As New Notebook</Button>
-                                        <Button style={{marginLeft:"20px"}} variant="outlined" startIcon={<UploadFileOutlinedIcon/>} onClick={()=>saveNotebook("update")} disabled={!notebookName || !currentNotebook || (currentNotebook?.name != notebookName) || !updateEnabled}>Save Notebook</Button>
-                                        <Button style={{marginLeft:"20px"}} variant="outlined" startIcon={<UploadFileOutlinedIcon/>} onClick={()=>exportNotebook()} disabled={!notebookName || !currentNotebook || (currentNotebook?.name != notebookName) || !updateEnabled}>Export Notebook</Button>
-                                        <Button style={{marginLeft:"20px"}} variant="outlined" startIcon={<UploadFileOutlinedIcon/>} onClick={()=>replaceNotebook()} disabled={!notebookName || !currentNotebook || (currentNotebook?.name != notebookName) || !updateEnabled}>Replace Notebook</Button>
-                                        <Button style={{marginLeft:"20px"}} variant="outlined" startIcon={<RemoveCircleOutlineOutlinedIcon/>} onClick={()=>deleteNotebook()} disabled={!notebookName || !currentNotebook || (currentNotebook?.name != notebookName) || !updateEnabled}>Delete Notebook</Button>
+                                        <Button style={{marginLeft:"20px"}} variant="outlined" startIcon={<UploadFileOutlinedIcon/>} onClick={()=>saveNotebook("update")} disabled={!updateEnabled}>Save Notebook</Button>
+                                        <Button style={{marginLeft:"20px"}} variant="outlined" startIcon={<UploadFileOutlinedIcon/>} onClick={()=>exportNotebook()} disabled={!updateEnabled}>Export Notebook</Button>
+                                        <Button style={{marginLeft:"20px"}} variant="outlined" startIcon={<UploadFileOutlinedIcon/>} onClick={()=>replaceNotebook()} disabled={!updateEnabled}>Replace Notebook</Button>
+                                        <Button style={{marginLeft:"20px"}} variant="outlined" startIcon={<RemoveCircleOutlineOutlinedIcon/>} onClick={()=>deleteNotebook()} disabled={!updateEnabled}>Delete Notebook</Button>
                                     </div>
 
                                 </div>
@@ -1094,28 +1681,44 @@ const NotebookEditor: React.FC<Props> = ({ context }) => {
                                     Snapshots save the current values of all variables in the notebook.  You can restore a snapshot to return all variables to the values they had when the snapshot was taken.
                                 </div>
                                 <div className="spacer" style={{display:"flex", justifyContent:"space-between", paddingTop:"20px"}}>
-                                    <div style={{display:"flex", alignItems:"center"}}>
-                                        <div>Enter Snapshot Description: </div>
-                                        <TextField
-                                            className='zeroTopMargin'
-                                            style={{minWidth:"300px", paddingLeft:"20px", paddingRight:"20px"}}
-                                            defaultValue={saveSnapshotDescription} 
-                                            onChange={(event) => setSaveSnapshotDescription(event.target.value)}
-                                            sx={{
-                                                "&.MuiFormControl-root": { marginTop: "0px !important" }
-                                            }}
-                                        />
-                                        <div>
-                                        <Button style={{}} variant="outlined" startIcon={<SaveOutlinedIcon/>} onClick={()=>saveSnapshot()}>Save Snapshot</Button>
+                                    <div>
+                                        <div style={{display:"flex", alignItems:"center", gap:"20px"}}>
+                                        
+                                            <div>Enter Snapshot Description: </div>
+                                            <TextField
+                                                className='zeroTopMargin'
+                                                style={{minWidth:"300px"}}
+                                                defaultValue={saveSnapshotDescription} 
+                                                onChange={(event) => setSaveSnapshotDescription(event.target.value)}
+                                                sx={{
+                                                    "&.MuiFormControl-root": { marginTop: "0px !important" }
+                                                }}
+                                            />
+                                        </div>
+
+                                        <div className='spacer'>
+                                            <Button style={{}} variant="outlined" startIcon={<SaveOutlinedIcon/>} onClick={()=>saveSnapshot()}>Save Snapshot</Button>
+                                            <Button style={{marginLeft:"20px"}} variant="outlined" startIcon={<SaveOutlinedIcon/>} onClick={()=>saveSnapshot("code")}>Save Code Only</Button>
                                         </div>
                                     </div>
+
                                     <div>
                                         <div>
                                             Select Snapshot: 
                                             <Select 
-                                                style={{minWidth:"300px", marginLeft:"20px"}} 
+                                                style={{minWidth:"300px", marginLeft:"20px"}}
                                                 value={selectedSnapshot} 
-                                                onChange={(event) => { if (updateEnabled) { setSelectedSnapshot(event.target.value) } }}
+                                                onChange={(event) => { if (updateEnabled) { 
+                                                    const name = event.target.value;
+                                                    setSelectedSnapshot(name);
+                                                    setRestoreSnapshotEnabled(
+                                                        snapshots.filter((v:any) => {
+                                                            console.log("looking at snapshot=", v);
+                                                            return (v.name === name && v.type === "code")
+                                                        }).length === 0
+                                                    )
+                                                }
+                                                }}
                                             >
                                                 <MenuItem value="">None</MenuItem>
                                                 {snapshots.map((snapshot) => (
@@ -1124,8 +1727,10 @@ const NotebookEditor: React.FC<Props> = ({ context }) => {
                                             </Select>
                                         </div>
                                         <div className='spacer'>
-                                            <Button style={{}} variant="outlined" startIcon={<UploadFileOutlinedIcon/>} onClick={()=>restoreSnapshot()}>Restore Snapshot</Button>
-                                            <Button style={{marginLeft:"40px"}} variant="outlined" startIcon={<UploadFileOutlinedIcon/>} onClick={()=>deleteSnapshot()}>Delete Snapshot</Button>
+                                            <Button style={{}} variant="outlined" startIcon={<UploadFileOutlinedIcon/>} disabled={!restoreSnapshotEnabled || !selectedSnapshot} onClick={()=>restoreSnapshot()}>Restore Data</Button>
+                                            <Button style={{marginLeft:"20px"}} variant="outlined" startIcon={<UploadFileOutlinedIcon/>} disabled={!selectedSnapshot} onClick={()=>restoreSnapshot("code")}>Restore Code</Button>
+                                            <Button style={{marginLeft:"20px"}} variant="outlined" startIcon={<UploadFileOutlinedIcon/>} disabled={!restoreSnapshotEnabled || !selectedSnapshot} onClick={()=>restoreSnapshot("vars,code")}>Restore Data & Code</Button>
+                                            <Button style={{marginLeft:"40px"}} variant="outlined" startIcon={<UploadFileOutlinedIcon/>} disabled={!selectedSnapshot} onClick={()=>deleteSnapshot()}>Delete Snapshot</Button>
                                         </div>
                                     </div>
 
@@ -1153,7 +1758,61 @@ const NotebookEditor: React.FC<Props> = ({ context }) => {
                         </div>
 
                         <div className="spacer detailDiv"/>
-                        <div className="spacer detailDiv"/>
+
+                        <Accordion>
+                            <AccordionSummary
+                                expandIcon={<ExpandMoreIcon />}
+                            >
+                                <div>
+                                    <h4>Editors: Users that can edit this notebook</h4>
+                                </div>
+                            </AccordionSummary>
+                            <AccordionDetails>
+                                <div className="content">
+                                    <MembersTable 
+                                        members={notebookEditors} 
+                                        setMembers={setNotebookEditors} 
+                                        noMembersLabel="No editors"
+                                        updated={handleEditorsUpdated} 
+                                        disabled={!updateEnabled}
+                                    />
+                                    <div>&nbsp;</div>
+                                    <AddPerson 
+                                        label="Email of new user to add to Editors list" 
+                                        style={{width:"400px"}}
+                                        handleAdd={(value) => {
+                                            console.log("Add Editor: ", value);
+                                            handleAddMember(value);
+                                        }} 
+                                        disabled={!updateEnabled}
+                                     />
+
+                                </div>
+                            </AccordionDetails>
+                        </Accordion>
+
+                        <Accordion>
+                            <AccordionSummary
+                                expandIcon={<ExpandMoreIcon />}
+                            >
+                                <div>
+                                    <h4>Attachments: Documents created by this notebook</h4>
+                                </div>
+                            </AccordionSummary>
+                            <AccordionDetails>
+                                <div className="content">
+                                    <Attachments
+                                        context={context}
+                                        document={currentNotebook}
+                                        setDocument={setCurrentNotebook}
+                                        docMgr={scriptMgr}
+                                        showUpload={true}
+                                    />
+                                </div>
+                            </AccordionDetails>
+                        </Accordion>
+
+                        <div id="bottom" className="spacer detailDiv" style={{paddingBottom:"40px"}}/>
                     </div> 
                 </div>
             </div>
