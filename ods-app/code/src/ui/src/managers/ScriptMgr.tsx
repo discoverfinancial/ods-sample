@@ -3,7 +3,7 @@
 */
 
 import { copyDocField } from '.';
-import { ScriptInfo, ScriptCreate, scriptType } from '../common';
+import { ScriptInfo, ScriptSummary, ScriptUpdate, ScriptCreate, scriptType, AttachmentInfo } from '../common';
 import { Http } from '../Http'
 import { DocError } from './Managers';
 
@@ -14,6 +14,7 @@ export class ScriptMgr  {
 
     http: Http = Http.getInstance();
     private static instance: ScriptMgr;
+    public abortController: AbortController | null = null;
 
     constructor() { }
 
@@ -63,7 +64,10 @@ export class ScriptMgr  {
             parameters: '',
             cronJob: '',
             cronRunAt: '',
-            view: ''
+            view: '',
+            editors: [],
+            timeout: '',
+            edited: []
         };
         return doc;
     }
@@ -215,17 +219,65 @@ export class ScriptMgr  {
         }
     }  
     
+    async uploadAttachment(documentId: string, file: File): Promise<AttachmentInfo[]> {
+        console.log(`uploadAttachment()`);
+        console.log("ScriptMgr.file=", file)
+
+        //@TODO: use localstorage during debug
+        const formData = new FormData();
+        //formData.append("documentId", documentId);
+        formData.append("file", file);
+        //await this.addAttachment({name: file.name, size: file.size, date: Date.now(), type: file.type});
+
+        let url = `${REACT_APP_ODS_SERVER}/api/docs/${scriptType}/${encodeURIComponent(documentId)}/attachments/`;
+        try {
+            const response = await this.http.put(url, formData, { headers: { "Content-Type": "multipart/form-data" } });
+            console.log("ScriptMgr.uploadAttachment response=", response)
+
+            const body = response.data;
+            return body;
+        } catch (e: any) {
+            console.error(new DocError(e));
+        }
+        return [];
+    }
+
+    async deleteAttachment(documentId: string, attachmentId: string): Promise<AttachmentInfo[] | null> {
+        console.log(`deleteAttachment(${documentId}, ${attachmentId})`);
+        let url = `${REACT_APP_ODS_SERVER}/api/docs/${scriptType}/${documentId}/attachments/${attachmentId}`;
+        try {
+            const response = await this.http.delete(url);
+            console.log("deleteAttachment response=", response)
+            const body = response.data;
+            return body;
+        } catch (e: any) {
+            console.error(new DocError(e));
+        }
+        return null;
+    }
+
     async runScript(data: any, type?: string): Promise<any> {
         return new Promise(async (resolve:any, reject:any) => {
             try {
                 const params = type ? `?type=${type}` : "";
-                await this.http.postStream(`${REACT_APP_ODS_SERVER}/api/script/run${params}`, data, undefined, function(result: string, done: boolean) {
+                this.abortController = null;
+                await this.http.postStream(`${REACT_APP_ODS_SERVER}/api/script/run${params}`, data, undefined, (result: string, done: boolean, req: XMLHttpRequest) => {
+                    // If done, return the result
                     if (done) {
                         console.log("Result: ", result)
                         return resolve(result);
                     }
-                }, false);
+                }, false, (controller: AbortController) => {
+                    // Set the abortController to allow cancellation
+                    if (controller) {
+                        this.abortController = controller;
+                    }
+                })
             } catch (e: any) {
+                if (e.message === 'canceled') {
+                    console.log('ScriptMgr.runScript: Request canceled:', e.message);
+                    return reject(new Error("Script Cancelled"));
+                }
                 const err = new DocError(e);
                 console.error(err);
                 return reject(err);
@@ -247,5 +299,11 @@ export class ScriptMgr  {
     }
 
     async stopScript(): Promise<any> {
+        console.log("stopScript")
+        if (this.abortController) {
+            console.log("Aborting script request")
+            this.abortController.abort();
+            this.abortController = null;
+        }
     }
 }
