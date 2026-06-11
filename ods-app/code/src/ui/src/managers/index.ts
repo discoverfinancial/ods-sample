@@ -16,8 +16,11 @@ import {StoreMgr} from "./StoreMgr";
 
 import {DocMgrSafe} from "./DocMgrSafe";
 import { SbomMgrSafe } from "./SbomMgrSafe";
+import { GuidanceMgrSafe } from './GuidanceMgrSafe';
 import { DepsDevMgrSafe } from './DepsDevMgrSafe';
 
+import { ScriptMgrSafe } from "./ScriptMgrSafe";
+import { NotebookMgrSafe } from "./NotebookMgrSafe";
 
 
 export const copyDocField = (dest: any, src: any, fieldName: string) => {
@@ -63,13 +66,16 @@ export const getMgrModels = (runAsEmployee: boolean) => {
         return {
             DocError, 
             DepsDevMgr: DepsDevMgrSafe, 
+            GuidanceMgr: GuidanceMgrSafe, 
+            ScriptMgr: ScriptMgrSafe, 
+            NotebookMgr: NotebookMgrSafe,
             DocMgr: DocMgrSafe,
             SbomMgr: SbomMgrSafe,
         }
     }
     else {
         return {
-            DocError, DepsDevMgr, EtlMgr, LogMgr, QueryMgr, ScriptMgr, NotebookMgr, StoreMgr, SbomMgr, DocMgr
+            DocError, DepsDevMgr, EtlMgr, GuidanceMgr, LogMgr, QueryMgr, ScriptMgr, NotebookMgr, StoreMgr, SbomMgr, DocMgr
         }
     }
 }
