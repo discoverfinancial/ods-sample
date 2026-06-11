@@ -30,10 +30,13 @@ interface Props {
 }
 
 const MostUsedDataGrid: React.FC<Props> = ({
+    title, 
     data, 
     handleRowClicked,
-    handleGuidanceClicked,
+    handleGuidanceClicked, 
+    isAdmin, 
     style,
+    guidance,
 }) => {
     const gridRef = useRef<AgGridReact>(null);
     const numRowsRef = useRef<HTMLDivElement>(null);
@@ -398,7 +401,7 @@ const MostUsedDataGrid: React.FC<Props> = ({
                     ref={gridRef}
                     defaultColDef={defaultColDef}
                     columnDefs={columnDefs}
-                    rowData={data}
+			rowData={Array.isArray(data) ? data :[]}
                     suppressCellFocus={true}
                     onGridReady={onGridReady}
                     onColumnResized={onColumnResized}
